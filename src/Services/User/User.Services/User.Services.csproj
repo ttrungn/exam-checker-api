@@ -12,7 +12,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="Features\Account\Commands\AssignARoleToAccount\"/>
+    <Folder Include="Features\Account\Queries\GetUsers\"/>
     <Folder Include="Interfaces\Services\"/>
     <Folder Include="Mappers\"/>
     <Folder Include="Models\Configurations\"/>

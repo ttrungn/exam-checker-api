@@ -1,10 +1,13 @@
+using System.Security.Claims;
 using Asp.Versioning;
 using Domain.Constants;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using User.API.Mappers;
+using User.Services.Features.Account.Commands.AssignARoleToAnAccount;
 using User.Services.Features.Account.Commands.CreateAnAccount;
+using User.Services.Features.Account.Queries.GetUserProfile;
 
 namespace User.API.Controllers.v1;
 
@@ -31,5 +34,38 @@ public class AccountController : ControllerBase
         }
 
         return Ok(result.ToBaseApiResponse());
+    }
+
+    [HttpPost("{userId:guid}/roles/{appRoleId:guid}")]
+    [Authorize(Roles = Roles.Admin)]
+    public async Task<IActionResult> AssignARoleToAnAccountAsync(Guid userId, Guid appRoleId)
+    {
+        var command = new AssignARoleToAnAccountCommand() { UserId = userId, AppRoleId = appRoleId };
+        var result = await _sender.Send(command);
+        if (!result.Success)
+        {
+            return BadRequest(result.ToBaseApiResponse());
+        }
+
+        return Ok(result.ToBaseApiResponse());
+    }
+
+    [HttpGet("{userId:guid}")]
+    [Authorize(Roles = Roles.Admin)]
+    public async Task<IActionResult> GetUserProfileById(Guid userId)
+    {
+        var query = new GetUserProfileQuery() { UserId = userId };
+        var result = await _sender.Send(query);
+        return Ok(result.ToDataApiResponse());
+    }
+
+    [HttpGet("profile")]
+    [Authorize]
+    public async Task<IActionResult> GetUserProfile()
+    {
+        var userId = Guid.Parse(User.FindFirstValue("http://schemas.microsoft.com/identity/claims/objectidentifier")!);
+        var query = new GetUserProfileQuery() { UserId = userId };
+        var result = await _sender.Send(query);
+        return Ok(result.ToDataApiResponse());
     }
 }

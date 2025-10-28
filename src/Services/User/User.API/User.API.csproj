@@ -10,7 +10,7 @@
 
   <ItemGroup>
     <PackageReference Include="Asp.Versioning.Mvc.ApiExplorer" Version="8.1.0"/>
-    <PackageReference Include="Microsoft.AspNetCore.OData" Version="8.3.1" />
+    <PackageReference Include="Microsoft.AspNetCore.OData" Version="8.3.1"/>
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="8.0.16"/>
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="8.0.20">
       <PrivateAssets>all</PrivateAssets>
@@ -24,6 +24,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Folder Include="Middlewares\"/>
     <Folder Include="Models\Requests\"/>
     <Folder Include="wwwroot\"/>
   </ItemGroup>

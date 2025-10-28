@@ -10,7 +10,7 @@ public static class AccountConstants
     public static readonly string[] ConsentProvidedForMinors = ["Granted", "Denied", "NotRequired"];
 }
 
-public class CreateAnAccountCommand : IRequest<BaseServiceResponse>
+public record CreateAnAccountCommand : IRequest<BaseServiceResponse>
 {
     public string Email { get; set; } = null!;
     public string? DisplayName { get; set; }
