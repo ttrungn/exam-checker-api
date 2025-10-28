@@ -1,11 +1,11 @@
 ﻿Microsoft Visual Studio Solution File, Format Version 12.00
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "User.Services", "src\Services\User\User.Services\User.Services.csproj", "{A9721F27-E06A-47DF-81C4-E4312D95AA1C}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Exam.Services", "src\Services\Exam\Exam.Services\Exam.Services.csproj", "{A9721F27-E06A-47DF-81C4-E4312D95AA1C}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "User.Repositories", "src\Services\User\User.Repositories\User.Repositories.csproj", "{72F71419-F16E-43E1-842B-18BC5E146429}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Exam.Repositories", "src\Services\Exam\Exam.Repositories\Exam.Repositories.csproj", "{72F71419-F16E-43E1-842B-18BC5E146429}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "User.API", "src\Services\User\User.API\User.API.csproj", "{BB674791-AE08-4355-BEAE-FEE093E241F5}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Exam.API", "src\Services\Exam\Exam.API\Exam.API.csproj", "{BB674791-AE08-4355-BEAE-FEE093E241F5}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "User.Domain", "src\Services\User\User.Domain\User.Domain.csproj", "{BB904A11-07B8-4992-9478-A29CB4634CBC}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Exam.Domain", "src\Services\Exam\Exam.Domain\Exam.Domain.csproj", "{BB904A11-07B8-4992-9478-A29CB4634CBC}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{7853929E-7641-4D42-8349-BB6209256017}"
 	ProjectSection(SolutionItems) = preProject
@@ -16,7 +16,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{87F60FE9-6A6
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Services", "Services", "{39C8420B-E578-44AF-B3AF-5185A17E7A96}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "User", "User", "{75E4E0A4-EA13-4C04-B449-A8E8B72A7BEC}"
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Exam", "Exam", "{75E4E0A4-EA13-4C04-B449-A8E8B72A7BEC}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Domain", "src\BuildingBlocks\Domain\Domain.csproj", "{1C65E898-E6D1-4F1F-BC79-600E3565F336}"
 EndProject
@@ -53,7 +53,7 @@ Global
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
-		StartupProject = User.API
+		StartupProject = Exam.API
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{39C8420B-E578-44AF-B3AF-5185A17E7A96} = {87F60FE9-6A6F-4B16-9267-5223B465785C}
