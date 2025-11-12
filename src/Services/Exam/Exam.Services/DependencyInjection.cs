@@ -19,6 +19,9 @@ public static class DependencyInjection
     {
         builder.Services.AddValidatorsFromAssembly(Assembly.GetExecutingAssembly());
 
+        // Register Service
+        builder.Services.AddScoped<ISemesterService, SemesterService>();
+
         builder.Services.AddMediatR(cfg =>
         {
             cfg.RegisterServicesFromAssembly(Assembly.GetExecutingAssembly());

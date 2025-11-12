@@ -1,6 +1,6 @@
 namespace Exam.Services.Models.Responses;
 
-public class PaginationServiceResponse<T>
+public class PaginationServiceResponse<T> : BaseServiceResponse
 {
     /// <summary>
     ///     Gets or sets the index of the page.
@@ -21,37 +21,26 @@ public class PaginationServiceResponse<T>
     public int TotalCount { get; set; }
 
     /// <summary>
-    ///     Gets or sets the total current count.
-    /// </summary>
-    public int TotalCurrentCount { get; set; }
-
-    /// <summary>
     ///     Gets or sets the total pages.
     /// </summary>
     /// <value>The total pages.</value>
     public int TotalPages { get; set; }
 
     /// <summary>
-    ///     Gets or sets the index from.
-    /// </summary>
-    /// <value>The index from.</value>
-    public int IndexFrom { get; set; }
-
-    /// <summary>
     ///     Gets or sets the items.
     /// </summary>
-    /// <value>The items.</value>
-    public IList<T> Items { get; set; }
+    /// <value>The data.</value>
+    public IList<T> Data { get; set; } = new List<T>();
 
     /// <summary>
     ///     Gets the has previous page.
     /// </summary>
     /// <value>The has previous page.</value>
-    public bool HasPreviousPage => PageIndex - IndexFrom > 0;
+    public bool HasPreviousPage => PageIndex > 1;
 
     /// <summary>
     ///     Gets the has next page.
     /// </summary>
     /// <value>The has next page.</value>
-    public bool HasNextPage => PageIndex - IndexFrom + 1 < TotalPages;
+    public bool HasNextPage => PageIndex < TotalPages;
 }

@@ -1,4 +1,4 @@
-﻿namespace Exam.Domain.Entities;
+namespace Exam.Domain.Entities;
 
 public class Subject : BaseAuditableEntity<Guid>
 {
