@@ -13,11 +13,7 @@
 
   <ItemGroup>
     <Folder Include="Features\Account\Queries\GetUsers\"/>
-    <Folder Include="Interfaces\Services\"/>
-    <Folder Include="Mappers\"/>
     <Folder Include="Models\Configurations\"/>
-    <Folder Include="Models\Requests\"/>
-    <Folder Include="Services\"/>
   </ItemGroup>
 
   <ItemGroup>

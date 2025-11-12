@@ -959,6 +959,19 @@ public class Repository<TEntity> : IRepository<TEntity> where TEntity : class
     }
 
     /// <summary>
+    /// Updates the specified entity.
+    /// </summary>
+    /// <param name="entity"></param>
+    /// <param name="cancellationToken"></param>
+    /// <returns></returns>
+    public virtual Task UpdateAsync(TEntity entity, CancellationToken cancellationToken = default)
+    {
+        _dbSet.Attach(entity);
+        _dbContext.Entry(entity).State = EntityState.Modified;
+        return Task.CompletedTask;
+    }
+
+    /// <summary>
     ///     Deletes the specified entity.
     /// </summary>
     /// <param name="entity">The entity to delete.</param>
@@ -1145,14 +1158,5 @@ public class Repository<TEntity> : IRepository<TEntity> where TEntity : class
     public virtual IQueryable<TEntity> Query()
     {
         return _dbSet;
-    }
-
-    /// <summary>
-    ///     Updates the specified entity.
-    /// </summary>
-    /// <param name="entity">The entity.</param>
-    public virtual void UpdateAsync(TEntity entity)
-    {
-        _dbSet.Update(entity);
     }
 }

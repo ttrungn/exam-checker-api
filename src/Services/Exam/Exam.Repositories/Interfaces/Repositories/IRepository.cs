@@ -555,6 +555,13 @@ public interface IRepository<TEntity> where TEntity : class
     void Update(IEnumerable<TEntity> entities);
 
     /// <summary>
+    ///     Updates the specified entity asynchronously.
+    /// </summary>
+    /// <param name="entity">The entity to update.</param>
+    /// <returns></returns>
+    Task UpdateAsync(TEntity entity, CancellationToken cancellationToken = default);
+
+    /// <summary>
     ///     Deletes the entity by the specified primary key.
     /// </summary>
     /// <param name="id">The primary key value.</param>

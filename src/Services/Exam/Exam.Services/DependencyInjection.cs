@@ -1,6 +1,8 @@
 using System.Reflection;
 using Azure.Identity;
 using Exam.Services.Behaviours;
+using Exam.Services.Interfaces.Services;
+using Exam.Services.Services;
 using FluentValidation;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -13,6 +15,9 @@ public static class DependencyInjection
     public static void AddBusinessServices(this IHostApplicationBuilder builder)
     {
         builder.Services.AddValidatorsFromAssembly(Assembly.GetExecutingAssembly());
+
+        // Register Service
+        builder.Services.AddScoped<ISemesterService, SemesterService>();
 
         builder.Services.AddMediatR(cfg =>
         {
