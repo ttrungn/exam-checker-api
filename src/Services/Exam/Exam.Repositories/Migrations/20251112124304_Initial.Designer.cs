@@ -12,7 +12,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Exam.Repositories.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20251112104447_Initial")]
+    [Migration("20251112124304_Initial")]
     partial class Initial
     {
         /// <inheritdoc />
@@ -71,6 +71,55 @@ namespace Exam.Repositories.Migrations
                     b.HasIndex("SemesterId");
 
                     b.ToTable("Exam", (string)null);
+                });
+
+            modelBuilder.Entity("Exam.Domain.Entities.ExamSubject", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("GETUTCDATE()");
+
+                    b.Property<DateTimeOffset>("Date")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid>("ExamId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<bool>("IsActive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(true);
+
+                    b.Property<string>("ScoreStructure")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<Guid>("SubjectId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("GETUTCDATE()");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CreatedAt");
+
+                    b.HasIndex("ExamId");
+
+                    b.HasIndex("IsActive");
+
+                    b.HasIndex("SubjectId");
+
+                    b.ToTable("ExamSubject", (string)null);
                 });
 
             modelBuilder.Entity("Exam.Domain.Entities.Semester", b =>
@@ -156,6 +205,62 @@ namespace Exam.Repositories.Migrations
                     b.ToTable("Subject", (string)null);
                 });
 
+            modelBuilder.Entity("Exam.Domain.Entities.Submission", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTimeOffset>("AssignAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("GETUTCDATE()");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid>("ExamSubjectId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("ExaminerId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("FileUrl")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<bool>("IsActive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(true);
+
+                    b.Property<Guid?>("ModeratorId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("nvarchar(max)")
+                        .HasDefaultValue("Pending");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("GETUTCDATE()");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CreatedAt");
+
+                    b.HasIndex("ExamSubjectId");
+
+                    b.HasIndex("IsActive");
+
+                    b.ToTable("Submission", (string)null);
+                });
+
             modelBuilder.Entity("Exam.Domain.Entities.Exam", b =>
                 {
                     b.HasOne("Exam.Domain.Entities.Semester", "Semester")
@@ -165,6 +270,25 @@ namespace Exam.Repositories.Migrations
                         .IsRequired();
 
                     b.Navigation("Semester");
+                });
+
+            modelBuilder.Entity("Exam.Domain.Entities.ExamSubject", b =>
+                {
+                    b.HasOne("Exam.Domain.Entities.Exam", "Exam")
+                        .WithMany("ExamSubjects")
+                        .HasForeignKey("ExamId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Exam.Domain.Entities.Subject", "Subject")
+                        .WithMany("ExamSubjects")
+                        .HasForeignKey("SubjectId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Exam");
+
+                    b.Navigation("Subject");
                 });
 
             modelBuilder.Entity("Exam.Domain.Entities.Subject", b =>
@@ -178,11 +302,37 @@ namespace Exam.Repositories.Migrations
                     b.Navigation("Semester");
                 });
 
+            modelBuilder.Entity("Exam.Domain.Entities.Submission", b =>
+                {
+                    b.HasOne("Exam.Domain.Entities.ExamSubject", "ExamSubject")
+                        .WithMany("Submissions")
+                        .HasForeignKey("ExamSubjectId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("ExamSubject");
+                });
+
+            modelBuilder.Entity("Exam.Domain.Entities.Exam", b =>
+                {
+                    b.Navigation("ExamSubjects");
+                });
+
+            modelBuilder.Entity("Exam.Domain.Entities.ExamSubject", b =>
+                {
+                    b.Navigation("Submissions");
+                });
+
             modelBuilder.Entity("Exam.Domain.Entities.Semester", b =>
                 {
                     b.Navigation("Exams");
 
                     b.Navigation("Subjects");
+                });
+
+            modelBuilder.Entity("Exam.Domain.Entities.Subject", b =>
+                {
+                    b.Navigation("ExamSubjects");
                 });
 #pragma warning restore 612, 618
         }

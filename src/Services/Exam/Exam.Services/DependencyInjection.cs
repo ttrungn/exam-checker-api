@@ -1,7 +1,12 @@
 using System.Reflection;
 using Azure.Identity;
+using Azure.Storage.Blobs;
 using Exam.Services.Behaviours;
+using Exam.Services.Interfaces.Services;
+using Exam.Services.Models.Configurations;
+using Exam.Services.Services;
 using FluentValidation;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Graph;
@@ -28,5 +33,15 @@ public static class DependencyInjection
             var credential = new ClientSecretCredential(tenantId, clientId, clientSecret);
             return new GraphServiceClient(credential, ["https://graph.microsoft.com/.default"]);
         });
+        
+        builder.Services.AddScoped<IAzureBlobService, AzureBlobService>();
+        builder.Services.AddScoped<ISubmissionService, SubmissionService>();
+        
+        // blob settings
+        var blobSettings = builder.Configuration.GetSection("Azure:BlobStorageSettings");
+        var blobConnectionString = blobSettings.GetValue<string>("ConnectionString");
+        builder.Services.Configure<BlobSettings>(blobSettings);
+        builder.Services.AddSingleton(new BlobServiceClient(blobConnectionString));
+
     }
 }
