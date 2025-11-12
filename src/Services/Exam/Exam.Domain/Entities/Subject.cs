@@ -7,4 +7,5 @@ public class Subject : BaseAuditableEntity<Guid>
     public string Code { get; set; } = null!;
 
     public Semester? Semester { get; set; } = null!;
+    public ICollection<ExamSubject> ExamSubjects { get; set; } = new List<ExamSubject>();
 }
