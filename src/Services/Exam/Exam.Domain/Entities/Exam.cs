@@ -1,4 +1,4 @@
-﻿namespace Exam.Domain.Entities;
+namespace Exam.Domain.Entities;
 
 public class Exam : BaseAuditableEntity<Guid>
 {
@@ -8,4 +8,5 @@ public class Exam : BaseAuditableEntity<Guid>
     public DateTimeOffset EndDate { get; set; }
 
     public Semester? Semester { get; set; } = null!;
+    public ICollection<ExamSubject> ExamSubjects { get; set; } = new List<ExamSubject>();
 }
