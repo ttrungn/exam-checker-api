@@ -25,10 +25,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="Configurations\"/>
-  </ItemGroup>
-
-  <ItemGroup>
     <ProjectReference Include="..\Exam.Domain\Exam.Domain.csproj"/>
   </ItemGroup>
 
