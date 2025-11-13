@@ -17,15 +17,15 @@ public class SubmissionController : ControllerBase
         _sender = sender;
     }
     [HttpPost]
-    public async Task<IResult> CreateAsync([FromForm] CreateSubmissionsFromZipCommand command,
+    public async Task<IResult> CreateAsync(
+        [FromForm] CreateSubmissionsFromZipCommand command,
         CancellationToken cancellationToken = default)
     {
         var result = await _sender.Send(command, cancellationToken);
         if (!result.Success) return Results.BadRequest(result.ToDataApiResponse());
-        var ver = HttpContext.GetRequestedApiVersion()?.ToString() ?? "1";
-        var ids = string.Join(",", result.Data);
-        var location = $"/api/v{ver}/submissions?ids={ids}";
 
-        return Results.Created(location, result.ToDataApiResponse());
+        // vì xử lý nền, có thể trả Accepted thay vì Created
+        return Results.Accepted(null, result.ToDataApiResponse());
     }
+
 }
