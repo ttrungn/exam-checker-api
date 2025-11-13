@@ -1,4 +1,4 @@
-﻿using Exam.API.Models.Responses;
+using Exam.API.Models.Responses;
 using Exam.Services.Models.Responses;
 
 namespace Exam.API.Mappers;

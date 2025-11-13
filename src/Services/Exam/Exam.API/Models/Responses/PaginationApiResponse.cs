@@ -1,4 +1,4 @@
-﻿namespace Exam.API.Models.Responses;
+namespace Exam.API.Models.Responses;
 
 public class PaginationApiResponse<T> : BaseApiResponse
 {

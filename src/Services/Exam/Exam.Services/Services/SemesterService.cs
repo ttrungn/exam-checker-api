@@ -1,4 +1,4 @@
-﻿using Exam.Domain.Entities;
+using Exam.Domain.Entities;
 using Exam.Repositories.Interfaces.Repositories;
 using Exam.Services.Exceptions;
 using Exam.Services.Features.Semesters.Commands.CreateSemester;
