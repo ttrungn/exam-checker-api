@@ -1,5 +1,6 @@
 ﻿using Exam.Domain.Entities;
 using Exam.Repositories.Interfaces.Repositories;
+using Exam.Services.Exceptions;
 using Exam.Services.Features.Semesters.Commands.CreateSemester;
 using Exam.Services.Features.Semesters.Commands.UpdateSemester;
 using Exam.Services.Features.Semesters.Queries.GetSemesters;
@@ -8,16 +9,19 @@ using Exam.Services.Mappers;
 using Exam.Services.Models.Responses;
 using Exam.Services.Models.Responses.Semesters;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 
 namespace Exam.Services.Services;
 
 public class SemesterService : ISemesterService
 {
     private readonly IUnitOfWork _unitOfWork;
+    private readonly ILogger<SemesterService> _logger;
 
-    public SemesterService(IUnitOfWork unitOfWork)
+    public SemesterService(IUnitOfWork unitOfWork, ILogger<SemesterService> logger)
     {
         _unitOfWork = unitOfWork;
+        _logger = logger;
     }
 
     public async Task<BaseServiceResponse> CreateAsync(
@@ -41,7 +45,8 @@ public class SemesterService : ISemesterService
         var semester = await repository.Query().FirstOrDefaultAsync(s => s.Id == reqest.Id, cancellationToken);
         if (semester == null)
         {
-            return new BaseServiceResponse() { Success = false, Message = "Không tìm thấy học kỳ!" };
+            _logger.LogError("Failed to retrieve semester with ID: {Id}", reqest.Id);
+            throw new NotFoundException("Không tìm thấy học kỳ!");
         }
 
         semester.UpdateSemester(reqest);
@@ -61,7 +66,8 @@ public class SemesterService : ISemesterService
         var semester = await repository.Query().FirstOrDefaultAsync(s => s.Id == id, cancellationToken);
         if (semester == null)
         {
-            return new BaseServiceResponse() { Success = false, Message = "Không tìm thấy học kỳ!" };
+            _logger.LogError("Failed to retrieve semester with ID: {Id}", id);
+            throw new NotFoundException("Không tìm thấy học kỳ!");
         }
 
         semester.IsActive = false;
@@ -79,7 +85,8 @@ public class SemesterService : ISemesterService
         var semester = await repository.Query().FirstOrDefaultAsync(s => s.Id == id, cancellationToken);
         if (semester == null)
         {
-            return new BaseServiceResponse() { Success = false, Message = "Không tìm thấy học kỳ!" };
+            _logger.LogError("Failed to retrieve semester with ID: {Id}", id);
+            throw new NotFoundException("Không tìm thấy học kỳ!");
         }
 
         return new DataServiceResponse<SemesterResponse>()
@@ -110,6 +117,7 @@ public class SemesterService : ISemesterService
             .Skip((reqest.PageIndex - 1)* reqest.PageSize)
             .Take(reqest.PageSize)
             .ToListAsync(cancellationToken);
+        var totalCurrentCount = semesters.Count;
 
         var responses = semesters.Select(s => s.ToSemesterResponse()).ToList();
         return new PaginationServiceResponse<SemesterResponse>()
@@ -119,6 +127,7 @@ public class SemesterService : ISemesterService
             PageIndex =  reqest.PageIndex,
             PageSize = reqest.PageSize,
             TotalCount =  totalCount,
+            TotalCurrentCount = totalCurrentCount,
             TotalPages = totalPages,
             Data = responses,
         };

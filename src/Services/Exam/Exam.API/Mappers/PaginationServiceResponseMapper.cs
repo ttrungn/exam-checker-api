@@ -14,6 +14,7 @@ public static class PaginationServiceResponseMapper
             PageIndex = paginationServiceResponse.PageIndex,
             PageSize = paginationServiceResponse.PageSize,
             TotalCount = paginationServiceResponse.TotalCount,
+            TotalCurrentCount = paginationServiceResponse.TotalCurrentCount,
             TotalPages = paginationServiceResponse.TotalPages,
             Data = paginationServiceResponse.Data
         };
