@@ -1,7 +1,6 @@
 using System.Reflection;
 using Exam.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.VisualBasic.FileIO;
 
 namespace Exam.Repositories.Repositories.Contexts;
 
@@ -9,7 +8,6 @@ public class ApplicationDbContext : DbContext
 {
     public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options) : base(options)
     {
-
     }
 
     public DbSet<Semester> Semesters => Set<Semester>();

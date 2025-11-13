@@ -1,4 +1,5 @@
 using Domain.Constants;
+using Exam.Services.Exceptions;
 using Exam.Services.Models.Responses;
 using MediatR;
 using Microsoft.Extensions.Configuration;
@@ -37,10 +38,7 @@ public class AssignARoleToAnAccountHandler
         if (string.IsNullOrWhiteSpace(clientId))
         {
             _logger.LogWarning("Missing AzureAD:ClientId configuration");
-            return new BaseServiceResponse
-            {
-                Success = false, Message = "Server configuration error: missing AzureAD:ClientId."
-            };
+            throw new ServiceUnavailableException("Đã có lỗi hệ thống xảy ra, vui lòng liên hệ admin để được hỗ trợ!");
         }
 
         var sps = await _graphClient.ServicePrincipals
@@ -53,24 +51,21 @@ public class AssignARoleToAnAccountHandler
         var sp = sps?.Value?.FirstOrDefault();
         if (sp == null)
         {
-            _logger.LogWarning("Resource service principal not found for configured client id");
-            return new BaseServiceResponse
-            {
-                Success = false, Message = "Resource service principal not found for the configured client id."
-            };
+            _logger.LogError("Resource service principal not found for configured client id");
+            throw new ServiceUnavailableException("Đã có lỗi hệ thống xảy ra, vui lòng liên hệ admin để được hỗ trợ!");
         }
 
         var role = sp.AppRoles?.FirstOrDefault(r => r.Id == request.AppRoleId);
         if (role == null)
         {
-            _logger.LogWarning("App role not found on the application: AppRoleId={AppRoleId}", request.AppRoleId);
-            return new BaseServiceResponse { Success = false, Message = "App role not found on this application." };
+            _logger.LogError("App role not found on the application: AppRoleId={AppRoleId}", request.AppRoleId);
+            throw new ServiceUnavailableException("Đã có lỗi hệ thống xảy ra, vui lòng liên hệ admin để được hỗ trợ!");
         }
 
         if (!Guid.TryParse(sp.Id, out var resourceSpId))
         {
             _logger.LogError("Service principal Id is not a valid GUID: {SpId}", sp.Id);
-            return new BaseServiceResponse { Success = false, Message = "Invalid service principal id." };
+            throw new ServiceUnavailableException("Đã có lỗi hệ thống xảy ra, vui lòng liên hệ admin để được hỗ trợ!");
         }
 
         // 2) Idempotency: skip if the assignment already exists
@@ -104,7 +99,8 @@ public class AssignARoleToAnAccountHandler
                 _logger.LogError("Failed to assign role to user: UserId={UserId}, AppRoleId={AppRoleId}",
                     request.UserId,
                     request.AppRoleId);
-                return new BaseServiceResponse { Success = false, Message = "Failed to assign role to Exam." };
+                throw new ServiceUnavailableException(
+                    "Đã có lỗi hệ thống xảy ra, vui lòng liên hệ admin để được hỗ trợ!");
             }
 
             if (role.Value != null && role.Value.Equals(Roles.Admin, StringComparison.OrdinalIgnoreCase))
@@ -133,10 +129,7 @@ public class AssignARoleToAnAccountHandler
                 "Failure during assignment/DirectoryRoles; starting compensation. UserId={UserId}, AppRoleId={AppRoleId}",
                 request.UserId, request.AppRoleId);
             await CompensateAsync(request.UserId, createdAppRoleAssignment, directoryRolesAdded, ct);
-            return new BaseServiceResponse
-            {
-                Success = false, Message = "Failed to assign role; all changes were rolled back."
-            };
+            throw new ServiceUnavailableException("Resource service principal not found for the configured client id.");
         }
     }
 

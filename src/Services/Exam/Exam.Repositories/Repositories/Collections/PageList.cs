@@ -13,7 +13,7 @@ public class PagedList<T> : IPagedList<T>
     /// <param name="pageIndex">The index of the page.</param>
     /// <param name="pageSize">The size of the page.</param>
     /// <param name="indexFrom">The index from.</param>
-    internal PagedList(IEnumerable<T> source, int pageIndex, int pageSize, int indexFrom)
+    public PagedList(IEnumerable<T> source, int pageIndex, int pageSize, int indexFrom)
     {
         if (indexFrom > pageIndex)
         {
@@ -44,7 +44,7 @@ public class PagedList<T> : IPagedList<T>
     /// <summary>
     ///     Initializes a new instance of the <see cref="PagedList{T}" /> class.
     /// </summary>
-    internal PagedList()
+    public PagedList()
     {
         Items = new T[0];
     }
@@ -108,7 +108,7 @@ public class PagedList<T> : IPagedList<T>
 /// </summary>
 /// <typeparam name="TSource">The type of the source.</typeparam>
 /// <typeparam name="TResult">The type of the result.</typeparam>
-internal class PagedList<TSource, TResult> : IPagedList<TResult>
+public class PagedList<TSource, TResult> : IPagedList<TResult>
 {
     /// <summary>
     ///     Initializes a new instance of the <see cref="PagedList{TSource, TResult}" /> class.
