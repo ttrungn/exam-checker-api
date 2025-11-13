@@ -8,6 +8,9 @@ public interface ISubmissionService
 {
     Task<DataServiceResponse<List<Guid>>> CreateSubmissionsFromZipAsync(
         CreateSubmissionsFromZipCommand command,
-        CancellationToken cancellationToken = default);
+        CancellationToken cancellationToken = default); 
+    Task<DataServiceResponse<Guid>> UploadZipForProcessingAsync(
+            CreateSubmissionsFromZipCommand command,
+            CancellationToken ct = default);
     
 }
