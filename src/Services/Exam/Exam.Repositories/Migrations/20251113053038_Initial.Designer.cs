@@ -12,7 +12,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Exam.Repositories.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20251112124304_Initial")]
+    [Migration("20251113053038_Initial")]
     partial class Initial
     {
         /// <inheritdoc />
@@ -24,6 +24,76 @@ namespace Exam.Repositories.Migrations
                 .HasAnnotation("Relational:MaxIdentifierLength", 128);
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
+
+            modelBuilder.Entity("Exam.Domain.Entities.Assessment", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Comment")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("GETUTCDATE()");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid>("ExaminerId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTimeOffset?>("GradedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<bool>("IsActive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(true);
+
+                    b.Property<decimal?>("Score")
+                        .HasPrecision(5, 2)
+                        .HasColumnType("decimal(5,2)");
+
+                    b.Property<string>("ScoreDetails")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("StudentCode")
+                        .IsRequired()
+                        .HasMaxLength(55)
+                        .HasColumnType("nvarchar(55)");
+
+                    b.Property<Guid>("SubmissionId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("SubmissionName")
+                        .IsRequired()
+                        .HasMaxLength(105)
+                        .HasColumnType("nvarchar(105)");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("GETUTCDATE()");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CreatedAt");
+
+                    b.HasIndex("IsActive");
+
+                    b.HasIndex("SubmissionId");
+
+                    b.ToTable("Assessment", (string)null);
+                });
 
             modelBuilder.Entity("Exam.Domain.Entities.Exam", b =>
                 {
@@ -84,9 +154,6 @@ namespace Exam.Repositories.Migrations
                         .HasColumnType("datetime2")
                         .HasDefaultValueSql("GETUTCDATE()");
 
-                    b.Property<DateTimeOffset>("Date")
-                        .HasColumnType("datetimeoffset");
-
                     b.Property<DateTime?>("DeletedAt")
                         .HasColumnType("datetime2");
 
@@ -108,6 +175,9 @@ namespace Exam.Repositories.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("datetime2")
                         .HasDefaultValueSql("GETUTCDATE()");
+
+                    b.Property<string>("ViolationStructure")
+                        .HasColumnType("nvarchar(max)");
 
                     b.HasKey("Id");
 
@@ -243,7 +313,7 @@ namespace Exam.Repositories.Migrations
                         .IsRequired()
                         .ValueGeneratedOnAdd()
                         .HasColumnType("nvarchar(max)")
-                        .HasDefaultValue("Pending");
+                        .HasDefaultValue("Processing");
 
                     b.Property<DateTime>("UpdatedAt")
                         .ValueGeneratedOnAdd()
@@ -259,6 +329,64 @@ namespace Exam.Repositories.Migrations
                     b.HasIndex("IsActive");
 
                     b.ToTable("Submission", (string)null);
+                });
+
+            modelBuilder.Entity("Exam.Domain.Entities.Violation", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("GETUTCDATE()");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Description")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<bool>("IsActive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(true);
+
+                    b.Property<bool>("IsResolved")
+                        .HasColumnType("bit");
+
+                    b.Property<DateTimeOffset?>("ResolvedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<Guid>("SubmissionId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("GETUTCDATE()");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CreatedAt");
+
+                    b.HasIndex("IsActive");
+
+                    b.HasIndex("SubmissionId");
+
+                    b.ToTable("Violation", (string)null);
+                });
+
+            modelBuilder.Entity("Exam.Domain.Entities.Assessment", b =>
+                {
+                    b.HasOne("Exam.Domain.Entities.Submission", "Submission")
+                        .WithMany("Assessments")
+                        .HasForeignKey("SubmissionId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Submission");
                 });
 
             modelBuilder.Entity("Exam.Domain.Entities.Exam", b =>
@@ -313,6 +441,17 @@ namespace Exam.Repositories.Migrations
                     b.Navigation("ExamSubject");
                 });
 
+            modelBuilder.Entity("Exam.Domain.Entities.Violation", b =>
+                {
+                    b.HasOne("Exam.Domain.Entities.Submission", "Submission")
+                        .WithMany("Violations")
+                        .HasForeignKey("SubmissionId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Submission");
+                });
+
             modelBuilder.Entity("Exam.Domain.Entities.Exam", b =>
                 {
                     b.Navigation("ExamSubjects");
@@ -333,6 +472,13 @@ namespace Exam.Repositories.Migrations
             modelBuilder.Entity("Exam.Domain.Entities.Subject", b =>
                 {
                     b.Navigation("ExamSubjects");
+                });
+
+            modelBuilder.Entity("Exam.Domain.Entities.Submission", b =>
+                {
+                    b.Navigation("Assessments");
+
+                    b.Navigation("Violations");
                 });
 #pragma warning restore 612, 618
         }
