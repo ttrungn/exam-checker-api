@@ -21,13 +21,16 @@ public static class DependencyInjection
 
         // Register Service
         builder.Services.AddScoped<ISemesterService, SemesterService>();
+        builder.Services.AddScoped<IAzureBlobService, AzureBlobService>();
+        builder.Services.AddScoped<ISubmissionService, SubmissionService>();
+        builder.Services.AddScoped<IGraphClientService, GraphClientService>();
 
         builder.Services.AddMediatR(cfg =>
         {
             cfg.RegisterServicesFromAssembly(Assembly.GetExecutingAssembly());
             cfg.AddOpenBehavior(typeof(ValidationBehaviour<,>));
         });
-        builder.Services.AddSingleton(sp =>
+        builder.Services.AddSingleton(_ =>
         {
             var cfg = builder.Configuration.GetSection("AzureAd");
             var tenantId = cfg["TenantId"];
@@ -36,15 +39,11 @@ public static class DependencyInjection
             var credential = new ClientSecretCredential(tenantId, clientId, clientSecret);
             return new GraphServiceClient(credential, ["https://graph.microsoft.com/.default"]);
         });
-        
-        builder.Services.AddScoped<IAzureBlobService, AzureBlobService>();
-        builder.Services.AddScoped<ISubmissionService, SubmissionService>();
-        
-        // blob settings
+
+        // Blob settings
         var blobSettings = builder.Configuration.GetSection("Azure:BlobStorageSettings");
         var blobConnectionString = blobSettings.GetValue<string>("ConnectionString");
         builder.Services.Configure<BlobSettings>(blobSettings);
         builder.Services.AddSingleton(new BlobServiceClient(blobConnectionString));
-
     }
 }

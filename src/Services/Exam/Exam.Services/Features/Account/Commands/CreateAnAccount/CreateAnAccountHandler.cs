@@ -1,3 +1,4 @@
+using Exam.Services.Exceptions;
 using Exam.Services.Models.Responses;
 using MediatR;
 using Microsoft.Extensions.Logging;
@@ -70,10 +71,21 @@ public class CreateAnAccountHandler : IRequestHandler<CreateAnAccountCommand, Ba
         // IMPORTANT:
         // - Do NOT set Identities[] for a regular workforce tenant Member Exam.
         // - Do NOT set 'mail' (read-only; Exchange populates it when licensed).
-        var created = await _graphClient.Users.PostAsync(user, cancellationToken: cancellationToken);
-        if (created == null || string.IsNullOrWhiteSpace(created.Id))
+        User? created;
+        try
         {
-            return new BaseServiceResponse { Success = false, Message = "User creation failed (Graph returned null)." };
+            created = await _graphClient.Users.PostAsync(user, cancellationToken: cancellationToken);
+        }
+        catch (Exception e)
+        {
+            _logger.LogError(e, "Failed to create user.");
+            throw new ServiceUnavailableException("Đã có lỗi hệ thống xảy ra, vui lòng liên hệ admin để được hỗ trợ!");
+        }
+
+        if (created == null)
+        {
+            _logger.LogError("Failed to create user.");
+            throw new ServiceUnavailableException("Đã có lỗi hệ thống xảy ra, vui lòng liên hệ admin để được hỗ trợ!");
         }
 
         if (string.IsNullOrWhiteSpace(request.ManagerUserId))

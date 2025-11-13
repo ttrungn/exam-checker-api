@@ -1,7 +1,14 @@
+using Microsoft.AspNetCore.Http;
+
 namespace Exam.Services.Exceptions;
 
 public class AppException : Exception
 {
+    protected AppException(string message) : base(message)
+    {
+        StatusCode = StatusCodes.Status500InternalServerError;
+    }
+
     protected AppException(string message, int statusCode, string? errorCode = null)
         : base(message)
     {

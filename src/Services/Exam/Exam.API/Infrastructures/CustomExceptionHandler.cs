@@ -10,7 +10,6 @@ public class CustomExceptionHandler : IExceptionHandler
 
     public CustomExceptionHandler()
     {
-        // Register known exception types and handlers.
         _exceptionHandlers = new Dictionary<Type, Func<HttpContext, Exception, Task>>
         {
             { typeof(ValidationException), HandleValidationException },
@@ -19,6 +18,7 @@ public class CustomExceptionHandler : IExceptionHandler
             { typeof(ArgumentNullException), HandleArgumentException },
             { typeof(NotFoundException), HandleNotFoundException },
             { typeof(UnauthorizedException), HandleUnauthorizedException },
+            { typeof(ServiceUnavailableException), HandleServiceUnavailableException },
             { typeof(AppException), HandleAppException }
         };
     }
@@ -68,21 +68,29 @@ public class CustomExceptionHandler : IExceptionHandler
 
     private async Task HandleNotFoundException(HttpContext httpContext, Exception ex)
     {
-        httpContext.Response.StatusCode = StatusCodes.Status404NotFound;
-        await httpContext.Response.WriteAsJsonAsync(new BaseApiResponse { Success = false, Message = ex.Message });
+        var appEx = (AppException)ex;
+        httpContext.Response.StatusCode = appEx.StatusCode;
+        await httpContext.Response.WriteAsJsonAsync(new BaseApiResponse { Success = false, Message = appEx.Message });
     }
 
     private async Task HandleUnauthorizedException(HttpContext httpContext, Exception ex)
     {
-        httpContext.Response.StatusCode = StatusCodes.Status401Unauthorized;
-        await httpContext.Response.WriteAsJsonAsync(new BaseApiResponse { Success = false, Message = ex.Message });
+        var appEx = (AppException)ex;
+        httpContext.Response.StatusCode = appEx.StatusCode;
+        await httpContext.Response.WriteAsJsonAsync(new BaseApiResponse { Success = false, Message = appEx.Message });
+    }
+
+    private async Task HandleServiceUnavailableException(HttpContext httpContext, Exception ex)
+    {
+        var appEx = (AppException)ex;
+        httpContext.Response.StatusCode = appEx.StatusCode;
+        await httpContext.Response.WriteAsJsonAsync(new BaseApiResponse { Success = false, Message = appEx.Message });
     }
 
     private async Task HandleAppException(HttpContext httpContext, Exception ex)
     {
         var appEx = (AppException)ex;
         httpContext.Response.StatusCode = appEx.StatusCode;
-
         await httpContext.Response.WriteAsJsonAsync(new BaseApiResponse { Success = false, Message = appEx.Message });
     }
 

@@ -24,7 +24,6 @@ public class SubmissionController : ControllerBase
         var result = await _sender.Send(command, cancellationToken);
         if (!result.Success) return Results.BadRequest(result.ToDataApiResponse());
 
-        // vì xử lý nền, có thể trả Accepted thay vì Created
         return Results.Accepted(null, result.ToDataApiResponse());
     }
 
