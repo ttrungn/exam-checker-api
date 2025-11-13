@@ -2,7 +2,7 @@
 
 public enum SubmissionStatus
 {
-    Pending = 0,
-    Graded = 1,
+    Processing = 0,
+    Clean = 1,
     Violation = 2,
 }
