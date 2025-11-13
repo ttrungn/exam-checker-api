@@ -91,7 +91,7 @@ public class SubmissionService : ISubmissionService
                 ExamSubjectId = command.ExamSubjectId,
                 ModeratorId = command.ModeratorId,
                 AssignAt = DateTimeOffset.UtcNow,
-                Status = SubmissionStatus.Pending,
+                Status = SubmissionStatus.Processing,
                 FileUrl = sasUrl
             };
 

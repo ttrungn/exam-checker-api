@@ -18,11 +18,12 @@ public class SubmissionConfiguration : IEntityTypeConfiguration<Submission>
         
         builder.Property(x => x.Status)
             .HasConversion<string>()
-            .HasDefaultValue(SubmissionStatus.Pending);
+            .HasDefaultValue(SubmissionStatus.Processing);
         
         builder.HasOne(x => x.ExamSubject)
             .WithMany(es => es.Submissions)
             .HasForeignKey(x => x.ExamSubjectId)
             .OnDelete(DeleteBehavior.Cascade);
+        
     }
 }
