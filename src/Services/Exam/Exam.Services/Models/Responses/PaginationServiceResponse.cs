@@ -21,6 +21,12 @@ public class PaginationServiceResponse<T> : BaseServiceResponse
     public int TotalCount { get; set; }
 
     /// <summary>
+    ///     Gets or sets the total current count.
+    /// </summary>
+    /// <value>The current total count.</value>
+    public int TotalCurrentCount { get; set; }
+
+    /// <summary>
     ///     Gets or sets the total pages.
     /// </summary>
     /// <value>The total pages.</value>

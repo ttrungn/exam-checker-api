@@ -17,7 +17,7 @@ public class SubmissionController : ControllerBase
         _sender = sender;
     }
     [HttpPost]
-    public async Task<IResult> CreateFieldAsync([FromForm] CreateSubmissionsFromZipCommand command,
+    public async Task<IResult> CreateAsync([FromForm] CreateSubmissionsFromZipCommand command,
         CancellationToken cancellationToken = default)
     {
         var result = await _sender.Send(command, cancellationToken);

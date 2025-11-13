@@ -1,4 +1,4 @@
-﻿using Exam.API.Models.Responses;
+using Exam.API.Models.Responses;
 using Exam.Services.Models.Responses;
 
 namespace Exam.API.Mappers;
@@ -14,6 +14,7 @@ public static class PaginationServiceResponseMapper
             PageIndex = paginationServiceResponse.PageIndex,
             PageSize = paginationServiceResponse.PageSize,
             TotalCount = paginationServiceResponse.TotalCount,
+            TotalCurrentCount = paginationServiceResponse.TotalCurrentCount,
             TotalPages = paginationServiceResponse.TotalPages,
             Data = paginationServiceResponse.Data
         };
