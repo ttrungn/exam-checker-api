@@ -5,6 +5,7 @@ using Exam.API.Mappers;
 using Exam.Services.Features.Account.Commands.AssignARoleToAnAccount;
 using Exam.Services.Features.Account.Commands.CreateAnAccount;
 using Exam.Services.Features.Account.Queries.GetAppRoles;
+using Exam.Services.Features.Account.Queries.GetExaminers;
 using Exam.Services.Features.Account.Queries.GetUserProfile;
 using Exam.Services.Features.Account.Queries.GetUsers;
 using MediatR;
@@ -61,7 +62,7 @@ public class AccountController : ControllerBase
     }
 
     [HttpGet]
-    [Authorize(Roles = Roles.Admin)]
+    // [Authorize(Roles = Roles.Admin)]
     public async Task<IActionResult> GetUsers([FromQuery] GetUsersQuery request)
     {
         var result = await _sender.Send(request);
@@ -75,6 +76,14 @@ public class AccountController : ControllerBase
         var userId = Guid.Parse(User.FindFirstValue("http://schemas.microsoft.com/identity/claims/objectidentifier")!);
         var query = new GetUserProfileQuery() { UserId = userId };
         var result = await _sender.Send(query);
+        return Ok(result.ToDataApiResponse());
+    }
+
+    [HttpGet("examiners")]
+    // [Authorize(Roles = $"{Roles.Admin},{Roles.Manager},{Roles.Moderator}")]
+    public async Task<IActionResult> GetExaminers([FromQuery] GetExaminersQuery request)
+    {
+        var result = await _sender.Send(request);
         return Ok(result.ToDataApiResponse());
     }
 }

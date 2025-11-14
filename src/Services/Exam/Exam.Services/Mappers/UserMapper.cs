@@ -1,3 +1,4 @@
+using Exam.Services.Features.Account.Queries.GetExaminers;
 using Exam.Services.Features.Account.Queries.GetUsers;
 using Microsoft.Graph.Models;
 
@@ -34,6 +35,20 @@ public static class UserMapper
             Surname = user.Surname ?? string.Empty,
             JobTitle = user.JobTitle ?? string.Empty,
             Roles = roleValues
+        };
+    }
+
+    public static ExaminerItemDto ToExaminerItemDto(this User user)
+    {
+        return new ExaminerItemDto
+        {
+            Id = user.Id ?? string.Empty,
+            Email = user.Mail ?? user.UserPrincipalName ?? string.Empty,
+            UserPrincipalName = user.UserPrincipalName ?? string.Empty,
+            DisplayName = user.DisplayName ?? string.Empty,
+            GivenName = user.GivenName ?? string.Empty,
+            Surname = user.Surname ?? string.Empty,
+            JobTitle = user.JobTitle ?? string.Empty
         };
     }
 }

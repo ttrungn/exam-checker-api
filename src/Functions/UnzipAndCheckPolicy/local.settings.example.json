@@ -1,0 +1,13 @@
+{
+  "IsEncrypted": false,
+  "Values": {
+    "AzureWebJobsStorage": "your local storage connection string",
+    "FUNCTIONS_WORKER_RUNTIME": "dotnet-isolated",
+    
+    "ConnectionStrings:DefaultConnection": "your coffee store connection string",
+    
+    "Azure:BlobStorageSettings:ConnectionString": "your local storage connection string",
+    "Azure:BlobStorageSettings:DefaultContainer": "subjects",
+    "Azure:BlobStorageSettings:UploadsContainer": "uploads"
+  }
+}
