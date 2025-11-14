@@ -13,7 +13,7 @@ namespace Exam.Services.Features.Subjects.Queries.GetSubjects;
 public record GetSubjectsQuery : IRequest<BaseServiceResponse>
 {
     public string? Name { get; init; }
-    public string? Code { get; init; } = null!;
+    public string? Code { get; init; }
     public bool? IsActive { get; init; }
     public int PageIndex { get; init; }
     public int PageSize { get; init; }
@@ -83,7 +83,7 @@ class GetSubjectsQueryHandler : IRequestHandler<GetSubjectsQuery, BaseServiceRes
             TotalCount = totalCount,
             TotalCurrentCount = totalCurrentCount,
             TotalPages = totalPages,
-            Data = responses,
+            Data = responses
         };
     }
 }

@@ -50,7 +50,9 @@ public class UpdateSubjectCommandHandler : IRequestHandler<UpdateSubjectCommand,
     public async Task<BaseServiceResponse> Handle(UpdateSubjectCommand request, CancellationToken cancellationToken)
     {
         var repository = _unitOfWork.GetRepository<Subject>();
-        var subject = await repository.Query()
+        var subject = await repository
+            .Query()
+            .Where(s => s.IsActive)
             .FirstOrDefaultAsync(s => s.Id == request.Id, cancellationToken);
         if (subject == null)
         {
@@ -60,6 +62,7 @@ public class UpdateSubjectCommandHandler : IRequestHandler<UpdateSubjectCommand,
 
         var semester = await  _unitOfWork.GetRepository<Semester>()
             .Query()
+            .Where(s => s.IsActive)
             .FirstOrDefaultAsync(s => s.Id == request.SemesterId, cancellationToken);
         if (semester == null)
         {

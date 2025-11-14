@@ -34,7 +34,10 @@ public class DeleteSubjectCommandHandler : IRequestHandler<DeleteSubjectCommand,
     public async Task<BaseServiceResponse> Handle(DeleteSubjectCommand request, CancellationToken cancellationToken)
     {
         var repository = _unitOfWork.GetRepository<Subject>();
-        var subject = await repository.Query().FirstOrDefaultAsync(s => s.Id == request.Id, cancellationToken);
+        var subject = await repository
+            .Query()
+            .Where(s => s.IsActive)
+            .FirstOrDefaultAsync(s => s.Id == request.Id, cancellationToken);
         if (subject == null)
         {
             _logger.LogError("Failed to retrieve subject with ID: {Id}", request.Id);

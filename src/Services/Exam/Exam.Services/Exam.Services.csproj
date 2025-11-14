@@ -12,6 +12,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Folder Include="Features\Exams\" />
     <Folder Include="Models\Configurations\"/>
     <Folder Include="Features\Submission\Queries\"/>
   </ItemGroup>

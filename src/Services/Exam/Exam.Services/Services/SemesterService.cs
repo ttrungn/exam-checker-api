@@ -42,7 +42,10 @@ public class SemesterService : ISemesterService
         CancellationToken cancellationToken = default)
     {
         var repository = _unitOfWork.GetRepository<Semester>();
-        var semester = await repository.Query().FirstOrDefaultAsync(s => s.Id == request.Id, cancellationToken);
+        var semester = await repository
+            .Query()
+            .Where(s => s.IsActive)
+            .FirstOrDefaultAsync(s => s.Id == request.Id, cancellationToken);
         if (semester == null)
         {
             _logger.LogError("Failed to retrieve semester with ID: {Id}", request.Id);
@@ -63,7 +66,10 @@ public class SemesterService : ISemesterService
         CancellationToken cancellationToken = default)
     {
         var repository = _unitOfWork.GetRepository<Semester>();
-        var semester = await repository.Query().FirstOrDefaultAsync(s => s.Id == id, cancellationToken);
+        var semester = await repository
+            .Query()
+            .Where(s => s.IsActive)
+            .FirstOrDefaultAsync(s => s.Id == id, cancellationToken);
         if (semester == null)
         {
             _logger.LogError("Failed to retrieve semester with ID: {Id}", id);
