@@ -1,0 +1,60 @@
+﻿services:
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    ports:
+      - "1433:1433"
+    environment:
+      ACCEPT_EULA: Y
+      SA_PASSWORD: ${SA_PASSWORD:-12345aA#}
+      TZ: Asia/Ho_Chi_Minh
+    platform: linux/amd64
+    networks:
+      - "exam-checker-network"
+    restart: always
+    healthcheck:
+      test: [ "CMD", "/opt/mssql-tools18/bin/sqlcmd", "-C", "-S", "localhost", "-U", "sa", "-P", "${SA_PASSWORD:-12345aA#}", "-Q", "SELECT 1", "-b" ]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+      start_period: 10s
+  sqlserver.configurator:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    volumes:
+      - ./Scripts/SQLServerInit:/SQLServerInit:ro
+    environment:
+      TZ: Asia/Ho_Chi_Minh
+    platform: linux/amd64
+    networks:
+      exam-checker-network:
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+    restart: "no"
+    command: >
+      bash -c '
+      /opt/mssql-tools18/bin/sqlcmd -C -S sqlserver -U sa -P ${SA_PASSWORD:-12345aA#} -d master -i SQLServerInit/init.sql;
+      '
+  
+  exam-service:
+    image: exam-service
+    build:
+      context: .
+      dockerfile: src/Services/Exam/Exam.API/Dockerfile
+    ports:
+      - "80:8080"
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      TZ: Asia/Ho_Chi_Minh
+    networks:
+      exam-checker-network:
+        aliases:
+          - "examchecker.localhost"
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+      sqlserver.configurator:
+        condition: service_completed_successfully
+
+networks:
+  exam-checker-network:
+    name: "exam-checker-network"
