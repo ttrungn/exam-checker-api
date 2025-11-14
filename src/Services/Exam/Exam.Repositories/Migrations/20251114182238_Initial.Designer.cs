@@ -12,7 +12,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Exam.Repositories.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20251113053038_Initial")]
+    [Migration("20251114182238_Initial")]
     partial class Initial
     {
         /// <inheritdoc />
@@ -366,6 +366,9 @@ namespace Exam.Repositories.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("datetime2")
                         .HasDefaultValueSql("GETUTCDATE()");
+
+                    b.Property<int?>("ViolationType")
+                        .HasColumnType("int");
 
                     b.HasKey("Id");
 

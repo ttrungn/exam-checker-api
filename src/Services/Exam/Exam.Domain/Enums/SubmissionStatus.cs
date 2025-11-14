@@ -3,6 +3,6 @@
 public enum SubmissionStatus
 {
     Processing = 0,
-    Clean = 1,
-    Violation = 2,
+    Validated = 1,
+    Violated = 2,
 }
