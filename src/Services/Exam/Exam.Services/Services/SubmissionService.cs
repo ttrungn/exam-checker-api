@@ -1,16 +1,19 @@
 ﻿using System.IO.Compression;
+using System.Text.Json;
 using System.Text.RegularExpressions;
 using Exam.Domain.Entities;
 using Exam.Domain.Enums;
 using Exam.Repositories.Interfaces.Repositories;
+using Exam.Services.Exceptions;
 using Exam.Services.Features.Submission.Commands.CreateSubmissionsFromZipCommand;
 using Exam.Services.Interfaces.Services;
 using Exam.Services.Models.Configurations;
 using Exam.Services.Models.Responses;
+using Exam.Services.Models.Validations;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Logging;
-using Exam.Services.Exceptions;
+using Microsoft.Extensions.Options;
+using static Microsoft.EntityFrameworkCore.DbLoggerCategory.Model;
 
 namespace Exam.Services.Services;
 
@@ -20,17 +23,21 @@ public class SubmissionService : ISubmissionService
     private readonly IAzureBlobService _blobService;
     private readonly BlobSettings _blobSettings;
     private readonly ILogger<SubmissionService> _logger;
+    private readonly IViolationService _violationService;
 
     public SubmissionService(
         IUnitOfWork unitOfWork,
         IAzureBlobService blobService,
         IOptions<BlobSettings> blobSettings,
-        ILogger<SubmissionService> logger)
+        ILogger<SubmissionService> logger,
+        IViolationService validationService
+        )
     {
         _unitOfWork   = unitOfWork;
         _blobService  = blobService;
         _blobSettings = blobSettings.Value;
         _logger       = logger;
+        _violationService = validationService;
     }
     
     public async Task<DataServiceResponse<List<Guid>>> CreateSubmissionsFromZipAsync(
@@ -174,7 +181,29 @@ public class SubmissionService : ISubmissionService
         var container  = _blobSettings.DefaultContainer;
 
         var createdIds    = new List<Guid>();
+
         var submissionRepo = _unitOfWork.GetRepository<Submission>();
+        var violationRepo = _unitOfWork.GetRepository<Violation>();
+        var examSubjectRepo = _unitOfWork.GetRepository<ExamSubject>();
+
+
+        var examSubject = await examSubjectRepo.Query()
+            .FirstOrDefaultAsync(es => es.Id == examSubjectId, ct); 
+        var rules = new ValidationRules();
+        try
+        {
+            rules = examSubject != null
+            ? JsonSerializer.Deserialize<ValidationRules>(examSubject.ViolationStructure ?? "[]")
+            : new ValidationRules();
+        }
+        catch(Exception ex)
+        {
+            _logger.LogError(ex, "Violation structure mismatch with ValidationRules {ExamSubjectId}", examSubjectId);
+            throw;
+        }
+
+
+        var submissionList = new List<Submission>();
 
         try
         {
@@ -193,8 +222,10 @@ public class SubmissionService : ISubmissionService
 
                 try
                 {
+
+                    // Create zip for each student
                     await using var zms = new MemoryStream();
-                    using (var z = new ZipArchive(zms, ZipArchiveMode.Create, leaveOpen: true))
+                    using (var studentZipWriter = new ZipArchive(zms, ZipArchiveMode.Create, leaveOpen: true))
                     {
                         foreach (var x in g)
                         {
@@ -204,7 +235,7 @@ public class SubmissionService : ISubmissionService
                                 ? x.Entry.Name
                                 : insidePath;
 
-                            var newEntry = z.CreateEntry(entryName, CompressionLevel.SmallestSize);
+                            var newEntry = studentZipWriter.CreateEntry(entryName, CompressionLevel.SmallestSize);
                             await using var src = x.Entry.Open();
                             await using var dst = newEntry.Open();
                             await src.CopyToAsync(dst, ct);
@@ -212,7 +243,7 @@ public class SubmissionService : ISubmissionService
                     }
 
                     zms.Position = 0;
-
+                    // upload each zip file to blob storage
                     var blobPath = $"{rootFolder}/{topLevel}.zip";
                     await _blobService.UploadAsync(zms, blobPath, container);
                     var sasUrl = _blobService.GetReadSasUrl(container, blobPath, TimeSpan.FromDays(7));
@@ -230,8 +261,30 @@ public class SubmissionService : ISubmissionService
 
                     await submissionRepo.InsertAsync(submission, ct);
                     createdIds.Add(submission.Id);
-                    
-                    _logger.LogDebug("Created submission {SubmissionId} for {TopLevel}", submission.Id, topLevel);
+                    submissionList.Add(submission);
+
+
+                    // Reset stream position for validation 
+                    zms.Position = 0;
+
+                    using var readableZip = new ZipArchive(zms, ZipArchiveMode.Read, leaveOpen: true);
+
+                    var violationResult = await _violationService.ValidateSubmissionAsync(
+                        submission.Id,
+                        readableZip,
+                        rules,
+                        ct);
+
+                    if (violationResult.Any())
+                    {
+                        await violationRepo.InsertAsync(violationResult, ct);
+                        submission.Status = SubmissionStatus.Violated;
+                    } 
+                    else
+                    {
+                        submission.Status = SubmissionStatus.Validated;
+                    }
+                        _logger.LogDebug("Created submission {SubmissionId} for {TopLevel}", submission.Id, topLevel);
                 }
                 catch (Exception ex)
                 {
@@ -242,7 +295,7 @@ public class SubmissionService : ISubmissionService
 
             await _unitOfWork.SaveChangesAsync();
 
-            if (createdIds.Count == 0)
+            if (createdIds.Count <= 0)
             {
                 _logger.LogWarning("ProcessZipCoreAsync: No files found in zip");
                 return new()
@@ -253,6 +306,8 @@ public class SubmissionService : ISubmissionService
             }
 
             _logger.LogInformation("ProcessZipCoreAsync success: Created {Count} submissions", createdIds.Count);
+
+
             return new()
             {
                 Success = true,

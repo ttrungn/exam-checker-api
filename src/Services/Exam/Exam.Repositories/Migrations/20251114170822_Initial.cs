@@ -173,6 +173,7 @@ namespace Exam.Repositories.Migrations
                     IsResolved = table.Column<bool>(type: "bit", nullable: false),
                     ResolvedAt = table.Column<DateTimeOffset>(type: "datetimeoffset", nullable: true),
                     SubmissionId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    ViolationType = table.Column<int>(type: "int", nullable: true),
                     CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false, defaultValueSql: "GETUTCDATE()"),
                     UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: false, defaultValueSql: "GETUTCDATE()"),
                     DeletedAt = table.Column<DateTime>(type: "datetime2", nullable: true),

@@ -22,8 +22,10 @@ public static class DependencyInjection
         // Register Service
         builder.Services.AddScoped<ISemesterService, SemesterService>();
         builder.Services.AddScoped<IAzureBlobService, AzureBlobService>();
+        builder.Services.AddScoped<IViolationService, ViolationService>();
         builder.Services.AddScoped<ISubmissionService, SubmissionService>();
         builder.Services.AddScoped<IGraphClientService, GraphClientService>();
+    
 
         builder.Services.AddMediatR(cfg =>
         {
