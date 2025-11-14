@@ -35,6 +35,7 @@ var host = new HostBuilder()
 
         services.AddScoped<IAzureBlobService, AzureBlobService>();
         services.AddScoped<ISubmissionService, SubmissionService>();
+        services.AddScoped<IViolationService, ViolationService>();  
     })
     .Build();
 
