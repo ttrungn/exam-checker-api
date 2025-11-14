@@ -11,4 +11,30 @@ public interface IGraphClientService
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>List of AppRole objects from Microsoft Graph</returns>
     Task<List<AppRole>> GetAppRolesAsync(string clientId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    ///     Gets directory roles by their display names from Microsoft Graph
+    /// </summary>
+    /// <param name="roleNames">Array of directory role display names to fetch</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>List of DirectoryRole objects matching the specified names</returns>
+    /// <exception cref="InvalidOperationException">Thrown when a required directory role is not found or not active</exception>
+    Task<List<DirectoryRole>> GetDirectoryRolesByNamesAsync(string[] roleNames, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    ///     Gets service principal by client ID
+    /// </summary>
+    /// <param name="clientId">The Azure AD client ID</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>ServicePrincipal object matching the client ID</returns>
+    Task<ServicePrincipal> GetServicePrincipalByClientIdAsync(string clientId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    ///     Gets app role assignments for a specific user
+    /// </summary>
+    /// <param name="userId">The user ID</param>
+    /// <param name="resourceId">Optional resource service principal ID to filter assignments</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>List of AppRoleAssignment objects for the user</returns>
+    Task<List<AppRoleAssignment>> GetUserAppRolesAsync(Guid userId, Guid? resourceId = null, CancellationToken cancellationToken = default);
 }

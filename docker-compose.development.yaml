@@ -1,0 +1,4 @@
+services:
+  exam-service:
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development

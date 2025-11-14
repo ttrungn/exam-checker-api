@@ -38,18 +38,21 @@ public class SemesterService : ISemesterService
     }
 
     public async Task<BaseServiceResponse> UpdateAsync(
-        UpdateSemesterCommand reqest,
+        UpdateSemesterCommand request,
         CancellationToken cancellationToken = default)
     {
         var repository = _unitOfWork.GetRepository<Semester>();
-        var semester = await repository.Query().FirstOrDefaultAsync(s => s.Id == reqest.Id, cancellationToken);
+        var semester = await repository
+            .Query()
+            .Where(s => s.IsActive)
+            .FirstOrDefaultAsync(s => s.Id == request.Id, cancellationToken);
         if (semester == null)
         {
-            _logger.LogError("Failed to retrieve semester with ID: {Id}", reqest.Id);
+            _logger.LogError("Failed to retrieve semester with ID: {Id}", request.Id);
             throw new NotFoundException("Không tìm thấy học kỳ!");
         }
 
-        semester.UpdateSemester(reqest);
+        semester.UpdateSemester(request);
         await repository.UpdateAsync(semester, cancellationToken);
         await _unitOfWork.SaveChangesAsync();
         return new DataServiceResponse<Guid>()
@@ -63,7 +66,10 @@ public class SemesterService : ISemesterService
         CancellationToken cancellationToken = default)
     {
         var repository = _unitOfWork.GetRepository<Semester>();
-        var semester = await repository.Query().FirstOrDefaultAsync(s => s.Id == id, cancellationToken);
+        var semester = await repository
+            .Query()
+            .Where(s => s.IsActive)
+            .FirstOrDefaultAsync(s => s.Id == id, cancellationToken);
         if (semester == null)
         {
             _logger.LogError("Failed to retrieve semester with ID: {Id}", id);
@@ -95,27 +101,27 @@ public class SemesterService : ISemesterService
         };
     }
 
-    public async Task<BaseServiceResponse> GetSemestersAsync(GetSemestersQuery reqest, CancellationToken cancellationToken = default)
+    public async Task<BaseServiceResponse> GetSemestersAsync(GetSemestersQuery request, CancellationToken cancellationToken = default)
     {
         var repository = _unitOfWork.GetRepository<Semester>();
         var query = repository.Query().AsNoTracking();
 
-        if (!string.IsNullOrEmpty(reqest.Name))
+        if (!string.IsNullOrEmpty(request.Name))
         {
-            query = query.Where(s => s.Name.Contains(reqest.Name));
+            query = query.Where(s => s.Name.Contains(request.Name));
         }
 
-        if (reqest.IsActive.HasValue)
+        if (request.IsActive.HasValue)
         {
-            query = query.Where(s => s.IsActive == reqest.IsActive.Value);
+            query = query.Where(s => s.IsActive == request.IsActive.Value);
         }
 
         var totalCount = await query.CountAsync(cancellationToken);
-        var totalPages = (int)Math.Ceiling((double)totalCount / reqest.PageSize);
+        var totalPages = (int)Math.Ceiling((double)totalCount / request.PageSize);
         var semesters = await query
             .OrderByDescending(s => s.CreatedAt)
-            .Skip((reqest.PageIndex - 1)* reqest.PageSize)
-            .Take(reqest.PageSize)
+            .Skip((request.PageIndex - 1) * request.PageSize)
+            .Take(request.PageSize)
             .ToListAsync(cancellationToken);
         var totalCurrentCount = semesters.Count;
 
@@ -124,8 +130,8 @@ public class SemesterService : ISemesterService
         {
             Success = true,
             Message = "Lấy danh sách học kỳ thành công!",
-            PageIndex =  reqest.PageIndex,
-            PageSize = reqest.PageSize,
+            PageIndex =  request.PageIndex,
+            PageSize = request.PageSize,
             TotalCount =  totalCount,
             TotalCurrentCount = totalCurrentCount,
             TotalPages = totalPages,

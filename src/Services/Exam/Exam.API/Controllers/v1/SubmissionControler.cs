@@ -1,4 +1,4 @@
-﻿using Asp.Versioning;
+using Asp.Versioning;
 using Exam.API.Mappers;
 using Exam.Services.Features.Submission.Commands.CreateSubmissionsFromZipCommand;
 using MediatR;
