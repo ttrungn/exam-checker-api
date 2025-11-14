@@ -1,5 +1,6 @@
 using Asp.Versioning.ApiExplorer;
 using Exam.API;
+using Exam.API.Hubs;
 using Exam.Repositories;
 using Exam.Repositories.Repositories.Contexts;
 using Exam.Services;
@@ -35,7 +36,7 @@ if (app.Environment.IsDevelopment())
 
 app.UseExceptionHandler();
 app.UseRouting();
-app.UseCors("AllowLocationHeader");
+app.UseCors("ExamCheckerCors");
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapGet("/", context =>
@@ -43,6 +44,7 @@ app.MapGet("/", context =>
     context.Response.Redirect("/swagger/index.html", false);
     return Task.CompletedTask;
 });
+app.MapHub<AccountNotificationsHub>("/hubs/account-notifications");
 app.MapControllers();
 
 app.Run();
