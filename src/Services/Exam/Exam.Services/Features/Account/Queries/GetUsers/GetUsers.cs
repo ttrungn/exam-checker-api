@@ -107,7 +107,17 @@ public class GetUsersHandler
             var users = new List<UserItemDto>();
             if (request.AppRoleIds == null)
             {
-                users.AddRange(res.Value.Select(x => x.ToUserItemDto(appRoles)));
+                foreach (var tempUser in res.Value)
+                {
+                    var userRoleAssignments = await _graphClient.Users[tempUser.Id].AppRoleAssignments.GetAsync(
+                        r =>
+                        {
+                            r.QueryParameters.Select = ["appRoleId"];
+                        }, ct);
+
+                    tempUser.AppRoleAssignments = userRoleAssignments?.Value;
+                    users.Add(tempUser.ToUserItemDto(appRoles));
+                }
             }
             else
             {
@@ -120,13 +130,8 @@ public class GetUsersHandler
                             r.QueryParameters.Select = ["appRoleId"];
                         }, ct);
 
-                    var roles = userRoleAssignments?.Value;
-                    if (roles?.Count == 0)
-                    {
-                        continue;
-                    }
-
-                    foreach (var role in roles!)
+                    tempUser.AppRoleAssignments = userRoleAssignments?.Value;
+                    foreach (var role in tempUser.AppRoleAssignments ?? [])
                     {
                         var roleId = role.AppRoleId?.ToString();
                         if (!string.IsNullOrEmpty(roleId) && appRoleIdSet.Contains(roleId))

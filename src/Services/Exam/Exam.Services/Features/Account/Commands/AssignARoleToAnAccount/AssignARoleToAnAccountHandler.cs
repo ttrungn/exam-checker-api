@@ -1,5 +1,6 @@
 using Domain.Constants;
 using Exam.Services.Exceptions;
+using Exam.Services.Interfaces.Services;
 using Exam.Services.Models.Responses;
 using MediatR;
 using Microsoft.Extensions.Configuration;
@@ -15,16 +16,19 @@ public class AssignARoleToAnAccountHandler
     private static readonly string[] AdminDirectoryRoles = ["User Administrator", "Groups Administrator"];
     private readonly IConfiguration _configuration;
     private readonly GraphServiceClient _graphClient;
+    private readonly IGraphClientService _graphClientService;
     private readonly ILogger<AssignARoleToAnAccountHandler> _logger;
 
     public AssignARoleToAnAccountHandler(
         ILogger<AssignARoleToAnAccountHandler> logger,
         IConfiguration configuration,
-        GraphServiceClient graphClient)
+        GraphServiceClient graphClient,
+        IGraphClientService graphClientService)
     {
         _logger = logger;
         _configuration = configuration;
         _graphClient = graphClient;
+        _graphClientService = graphClientService;
     }
 
     public async Task<BaseServiceResponse> Handle(
@@ -33,7 +37,7 @@ public class AssignARoleToAnAccountHandler
     {
         _logger.LogInformation("Assign role invoked: UserId={UserId}, AppRoleId={AppRoleId}", request.UserId,
             request.AppRoleId);
-        // 1) Resolve the resource service principal id
+        // 1) Get AppRoles using IGraphClientService
         var clientId = _configuration["AzureAD:ClientId"];
         if (string.IsNullOrWhiteSpace(clientId))
         {
@@ -41,26 +45,16 @@ public class AssignARoleToAnAccountHandler
             throw new ServiceUnavailableException("Đã có lỗi hệ thống xảy ra, vui lòng liên hệ admin để được hỗ trợ!");
         }
 
-        var sps = await _graphClient.ServicePrincipals
-            .GetAsync(q =>
-            {
-                q.QueryParameters.Filter = $"appId eq '{clientId}'";
-                q.QueryParameters.Top = 1;
-            }, ct);
-
-        var sp = sps?.Value?.FirstOrDefault();
-        if (sp == null)
-        {
-            _logger.LogError("Resource service principal not found for configured client id");
-            throw new ServiceUnavailableException("Đã có lỗi hệ thống xảy ra, vui lòng liên hệ admin để được hỗ trợ!");
-        }
-
-        var role = sp.AppRoles?.FirstOrDefault(r => r.Id == request.AppRoleId);
+        var appRoles = await _graphClientService.GetAppRolesAsync(clientId, ct);
+        var role = appRoles.FirstOrDefault(r => r.Id == request.AppRoleId);
         if (role == null)
         {
             _logger.LogError("App role not found on the application: AppRoleId={AppRoleId}", request.AppRoleId);
             throw new ServiceUnavailableException("Đã có lỗi hệ thống xảy ra, vui lòng liên hệ admin để được hỗ trợ!");
         }
+
+        // 2) Get resource service principal
+        var sp = await _graphClientService.GetServicePrincipalByClientIdAsync(clientId, ct);
 
         if (!Guid.TryParse(sp.Id, out var resourceSpId))
         {
@@ -68,30 +62,42 @@ public class AssignARoleToAnAccountHandler
             throw new ServiceUnavailableException("Đã có lỗi hệ thống xảy ra, vui lòng liên hệ admin để được hỗ trợ!");
         }
 
-        // 2) Idempotency: skip if the assignment already exists
-        var existingForResource = await _graphClient
-            .Users[request.UserId.ToString()]
-            .AppRoleAssignments
-            .GetAsync(q => { q.QueryParameters.Filter = $"resourceId eq {resourceSpId}"; }, ct);
-
-        if (existingForResource?.Value?.Any(a => a.AppRoleId == request.AppRoleId) == true)
-        {
-            // Essential outcome log
-            _logger.LogInformation("Role already assigned: UserId={UserId}, AppRoleId={AppRoleId}", request.UserId,
-                request.AppRoleId);
-            return new BaseServiceResponse { Success = true, Message = "Role already assigned to the Exam." };
-        }
-
-        // 3) Create the appRoleAssignment
         AppRoleAssignment? createdAppRoleAssignment = null;
         var directoryRolesAdded = new List<string>();
+        var deletedAssignments = new List<AppRoleAssignment>();
+        var deletedDirectoryRoles = new List<string>();
         try
         {
+            // 3) Delete existing directory roles first
+            var existingDirectoryRoles =
+                await _graphClientService.GetDirectoryRolesByNamesAsync(AdminDirectoryRoles, ct);
+            foreach (var dirRole in existingDirectoryRoles)
+            {
+                await _graphClient.DirectoryRoles[dirRole.Id!].Members[request.UserId.ToString()].Ref
+                    .DeleteAsync(cancellationToken: ct);
+                deletedDirectoryRoles.Add(dirRole.Id!);
+                _logger.LogInformation(
+                    "Deleted existing directory role: UserId={UserId}, RoleId={RoleId}, RoleName={RoleName}",
+                    request.UserId, dirRole.Id, dirRole.DisplayName);
+            }
+
+            // 4) Delete existing app role assignments before assigning new one
+            var existingAssignments = await _graphClientService.GetUserAppRolesAsync(request.UserId, resourceSpId, ct);
+            foreach (var existingAssignment in existingAssignments)
+            {
+                await _graphClient.Users[request.UserId.ToString()].AppRoleAssignments[existingAssignment.Id!]
+                    .DeleteAsync(cancellationToken: ct);
+                deletedAssignments.Add(existingAssignment);
+                _logger.LogInformation(
+                    "Deleted existing app role assignment: UserId={UserId}, AppRoleId={AppRoleId}, AssignmentId={AssignmentId}",
+                    request.UserId, existingAssignment.AppRoleId, existingAssignment.Id);
+            }
+
+            // 5) Create the appRoleAssignment
             var assignment = new AppRoleAssignment
             {
                 PrincipalId = request.UserId, ResourceId = resourceSpId, AppRoleId = request.AppRoleId
             };
-
             createdAppRoleAssignment = await _graphClient.Users[request.UserId.ToString()].AppRoleAssignments
                 .PostAsync(assignment, cancellationToken: ct);
             if (createdAppRoleAssignment == null)
@@ -105,8 +111,7 @@ public class AssignARoleToAnAccountHandler
 
             if (role.Value != null && role.Value.Equals(Roles.Admin, StringComparison.OrdinalIgnoreCase))
             {
-                var requiredRoles = await GetDirectoryRolesOrThrow(AdminDirectoryRoles, ct);
-
+                var requiredRoles = await _graphClientService.GetDirectoryRolesByNamesAsync(AdminDirectoryRoles, ct);
                 foreach (var dirRole in requiredRoles)
                 {
                     await _graphClient.DirectoryRoles[dirRole.Id!].Members.Ref.PostAsync(
@@ -118,6 +123,15 @@ public class AssignARoleToAnAccountHandler
                         request.UserId, dirRole.DisplayName, dirRole.Id);
                 }
             }
+            else if (role.Value != null && role.Value.Equals(Roles.Manager, StringComparison.OrdinalIgnoreCase))
+            {
+            }
+            else if (role.Value != null && role.Value.Equals(Roles.Moderator, StringComparison.OrdinalIgnoreCase))
+            {
+            }
+            else if (role.Value != null && role.Value.Equals(Roles.Examiner, StringComparison.OrdinalIgnoreCase))
+            {
+            }
 
             _logger.LogInformation("Assigned role to user: UserId={UserId}, AppRoleId={AppRoleId}", request.UserId,
                 request.AppRoleId);
@@ -128,39 +142,19 @@ public class AssignARoleToAnAccountHandler
             _logger.LogError(ex,
                 "Failure during assignment/DirectoryRoles; starting compensation. UserId={UserId}, AppRoleId={AppRoleId}",
                 request.UserId, request.AppRoleId);
-            await CompensateAsync(request.UserId, createdAppRoleAssignment, directoryRolesAdded, ct);
-            throw new ServiceUnavailableException("Resource service principal not found for the configured client id.");
+            await CompensateAsync(request.UserId, createdAppRoleAssignment, directoryRolesAdded, deletedAssignments,
+                deletedDirectoryRoles, resourceSpId, ct);
+            throw new ServiceUnavailableException("Đã có lỗi hệ thống xảy ra, vui lòng liên hệ admin để được hỗ trợ!");
         }
     }
 
-    // READ-ONLY: fetch directory roles by displayName; if any are missing, throw to trigger compensation.
-    private async Task<List<DirectoryRole>> GetDirectoryRolesOrThrow(string[] names, CancellationToken ct)
-    {
-        var results = new List<DirectoryRole>();
-
-        foreach (var name in names)
-        {
-            var resp = await _graphClient.DirectoryRoles.GetAsync(q =>
-            {
-                q.QueryParameters.Select = ["id", "displayName"];
-                q.QueryParameters.Filter = $"displayName eq '{name}'";
-            }, ct);
-
-            var role = resp?.Value?.FirstOrDefault();
-            if (role is null)
-            {
-                throw new InvalidOperationException($"Required directory role is not active: {name}");
-            }
-
-            results.Add(role);
-        }
-
-        return results;
-    }
 
     private async Task CompensateAsync(Guid userId, AppRoleAssignment? createdAssignment,
-        List<string> directoryRolesAdded, CancellationToken ct)
+        List<string> directoryRolesAdded, List<AppRoleAssignment> deletedAssignments,
+        List<string> deletedDirectoryRoles, Guid resourceSpId,
+        CancellationToken ct)
     {
+        // Remove any directory roles that were added during the assignment
         foreach (var roleId in directoryRolesAdded.AsEnumerable().Reverse())
         {
             try
@@ -178,6 +172,7 @@ public class AssignARoleToAnAccountHandler
             }
         }
 
+        // Delete the newly created app role assignment
         if (createdAssignment?.Id is not null)
         {
             try
@@ -192,6 +187,50 @@ public class AssignARoleToAnAccountHandler
                 _logger.LogWarning(delEx,
                     "Compensation warning: could not delete app role assignment {AssignmentId} for user {UserId}",
                     createdAssignment.Id, userId);
+            }
+        }
+
+        // Restore previously deleted app role assignments
+        foreach (var deletedAssignment in deletedAssignments)
+        {
+            try
+            {
+                var restoredAssignment = new AppRoleAssignment
+                {
+                    PrincipalId = userId, ResourceId = resourceSpId, AppRoleId = deletedAssignment.AppRoleId
+                };
+
+                await _graphClient.Users[userId.ToString()].AppRoleAssignments
+                    .PostAsync(restoredAssignment, cancellationToken: ct);
+                _logger.LogInformation(
+                    "Compensation: restored app role assignment for user {UserId}, AppRoleId={AppRoleId}",
+                    userId, deletedAssignment.AppRoleId);
+            }
+            catch (Exception restoreEx)
+            {
+                _logger.LogWarning(restoreEx,
+                    "Compensation warning: could not restore app role assignment for user {UserId}, AppRoleId={AppRoleId}",
+                    userId, deletedAssignment.AppRoleId);
+            }
+        }
+
+        // Restore previously deleted directory roles
+        foreach (var deletedRoleId in deletedDirectoryRoles)
+        {
+            try
+            {
+                await _graphClient.DirectoryRoles[deletedRoleId].Members.Ref.PostAsync(
+                    new ReferenceCreate { OdataId = $"https://graph.microsoft.com/v1.0/users/{userId}" },
+                    cancellationToken: ct);
+                _logger.LogInformation(
+                    "Compensation: restored directory role for user {UserId}, RoleId={RoleId}",
+                    userId, deletedRoleId);
+            }
+            catch (Exception restoreEx)
+            {
+                _logger.LogWarning(restoreEx,
+                    "Compensation warning: could not restore directory role for user {UserId}, RoleId={RoleId}",
+                    userId, deletedRoleId);
             }
         }
     }
