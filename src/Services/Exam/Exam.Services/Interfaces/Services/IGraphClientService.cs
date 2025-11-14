@@ -19,7 +19,8 @@ public interface IGraphClientService
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>List of DirectoryRole objects matching the specified names</returns>
     /// <exception cref="InvalidOperationException">Thrown when a required directory role is not found or not active</exception>
-    Task<List<DirectoryRole>> GetDirectoryRolesByNamesAsync(string[] roleNames, CancellationToken cancellationToken = default);
+    Task<List<DirectoryRole>> GetDirectoryRolesByNamesAsync(string[] roleNames,
+        CancellationToken cancellationToken = default);
 
     /// <summary>
     ///     Gets service principal by client ID
@@ -27,7 +28,8 @@ public interface IGraphClientService
     /// <param name="clientId">The Azure AD client ID</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>ServicePrincipal object matching the client ID</returns>
-    Task<ServicePrincipal> GetServicePrincipalByClientIdAsync(string clientId, CancellationToken cancellationToken = default);
+    Task<ServicePrincipal> GetServicePrincipalByClientIdAsync(string clientId,
+        CancellationToken cancellationToken = default);
 
     /// <summary>
     ///     Gets app role assignments for a specific user
@@ -36,5 +38,14 @@ public interface IGraphClientService
     /// <param name="resourceId">Optional resource service principal ID to filter assignments</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>List of AppRoleAssignment objects for the user</returns>
-    Task<List<AppRoleAssignment>> GetUserAppRolesAsync(Guid userId, Guid? resourceId = null, CancellationToken cancellationToken = default);
+    Task<List<AppRoleAssignment>> GetUserAppRolesAsync(Guid userId, Guid? resourceId = null,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    ///     Gets directory roles assigned to a specific user
+    /// </summary>
+    /// <param name="userId">The user ID</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>List of DirectoryRole objects assigned to the user</returns>
+    Task<List<DirectoryRole>> GetUserDirectoryRolesAsync(Guid userId, CancellationToken cancellationToken = default);
 }
