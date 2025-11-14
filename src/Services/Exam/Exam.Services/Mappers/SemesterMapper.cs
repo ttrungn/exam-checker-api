@@ -1,6 +1,8 @@
 ﻿using Exam.Domain.Entities;
 using Exam.Services.Features.Semesters.Commands.CreateSemester;
 using Exam.Services.Features.Semesters.Commands.UpdateSemester;
+using Exam.Services.Features.Semesters.Queries.GetSemesters;
+using Exam.Services.Models.Requests.Semesters;
 using Exam.Services.Models.Responses.Semesters;
 
 namespace Exam.Services.Mappers;
@@ -29,6 +31,17 @@ public static class SemesterMapper
             CreatedAt = semester.CreatedAt,
             UpdatedAt = semester.UpdatedAt,
             IsActive = semester.IsActive
+        };
+    }
+
+    public static GetSemestersQuery ToGetSemestersQuery(this SemesterGetRequest request)
+    {
+        return new GetSemestersQuery
+        {
+            Name = request.Name,
+            IsActive = request.IsActive,
+            PageIndex = request.PageIndex ?? 1,
+            PageSize = request.PageSize ?? 8
         };
     }
 }
