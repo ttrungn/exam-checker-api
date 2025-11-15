@@ -40,8 +40,8 @@ public class UnzipAndCheck
             _logger.LogError("Invalid examSubjectId: {Value}", examSubjectId);
             return;
         }
-        // 1. Parse examSubjectId
-        if (!Guid.TryParse(examSubjectId, out var examinerGuid))
+        // 1. Parse examinerId
+        if (!Guid.TryParse(examinerId, out var examinerGuid))
         {
             _logger.LogError("Invalid examinerId: {Value}", examinerId);
             return;
