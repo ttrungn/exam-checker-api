@@ -22,16 +22,17 @@ public class UnzipAndCheck
     // Blob: uploads/{examSubjectId}/{name}.zip
     [Function(nameof(UnzipAndCheck))]
     public async Task Run(
-        [BlobTrigger("uploads/{examSubjectId}/{name}", 
+        [BlobTrigger("uploads/{examSubjectId}/{examinerId}/{name}", 
             Connection = "AzureWebJobsStorage")]
         Stream zipStream,
         string examSubjectId,
+        string examinerId,
         string name,
         FunctionContext context)
     {
         _logger.LogInformation(
-            "Triggered for blob: uploads/{ExamSubjectId}/{Name}",
-            examSubjectId, name);
+            "Triggered for blob: uploads/{ExamSubjectId}/{examinerId}/{Name}",
+            examSubjectId, examinerId, name);
 
         // 1. Parse examSubjectId
         if (!Guid.TryParse(examSubjectId, out var examSubjectGuid))
@@ -39,7 +40,12 @@ public class UnzipAndCheck
             _logger.LogError("Invalid examSubjectId: {Value}", examSubjectId);
             return;
         }
-
+        // 1. Parse examSubjectId
+        if (!Guid.TryParse(examSubjectId, out var examinerGuid))
+        {
+            _logger.LogError("Invalid examinerId: {Value}", examinerId);
+            return;
+        }
         var ct = context.CancellationToken;
 
         // 2. Copy stream sang MemoryStream để tạo IFormFile
@@ -58,8 +64,7 @@ public class UnzipAndCheck
         var command = new CreateSubmissionsFromZipCommand
         {
             ExamSubjectId = examSubjectGuid,
-            ExaminerId   = null,    // encode thêm trong path/metadata của upload blob nếu cần
-            ModeratorId  = null,
+            ExaminerId   = examinerGuid,    
             ZipFile      = formFile
         };
 
