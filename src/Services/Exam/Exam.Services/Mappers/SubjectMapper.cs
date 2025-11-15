@@ -30,6 +30,7 @@ public static class SubjectMapper
         {
             Id = subject.Id,
             Name = subject.Name,
+            Code = subject.Code,
             CreatedAt = subject.CreatedAt,
             UpdatedAt = subject.UpdatedAt,
             IsActive = subject.IsActive,
