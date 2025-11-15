@@ -4,6 +4,7 @@ using Asp.Versioning;
 using Exam.API.Infrastructures;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.Identity.Web;
 using Microsoft.OpenApi.Models;
 
@@ -74,17 +75,48 @@ public static class DependencyInjection
             });
         builder.Services
             .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-            .AddMicrosoftIdentityWebApi(builder.Configuration.GetSection("AzureAd"));
+            .AddMicrosoftIdentityWebApi(
+                jwtOptions =>
+                {
+                    builder.Configuration.Bind("AzureAd", jwtOptions);
+
+                    jwtOptions.Events = new JwtBearerEvents
+                    {
+                        OnMessageReceived = context =>
+                        {
+                            var accessToken = context.Request.Query["access_token"];
+                            var path = context.HttpContext.Request.Path;
+
+                            if (!string.IsNullOrEmpty(accessToken) &&
+                                path.StartsWithSegments("/hubs"))
+                            {
+                                context.Token = accessToken;
+                            }
+
+                            return Task.CompletedTask;
+                        }
+                    };
+                },
+                identityOptions =>
+                {
+                    builder.Configuration.Bind("AzureAd", identityOptions);
+                });
         builder.Services.AddAuthorization();
         builder.Services.AddCors(options =>
         {
-            options.AddPolicy("AllowLocationHeader", policy =>
+            options.AddPolicy("ExamCheckerCors", policy =>
             {
-                policy.AllowAnyOrigin()
+                policy.WithOrigins(
+                        builder.Configuration["Cors:ExamCheckerWebOrigin"] ??
+                        throw new InvalidOperationException("ExamCheckerWebOrigin is not configured")
+                    )
                     .AllowAnyMethod()
                     .AllowAnyHeader()
-                    .WithExposedHeaders("Location");
+                    .WithExposedHeaders("Location")
+                    .AllowCredentials();
             });
         });
+        builder.Services.AddSignalR();
+        builder.Services.AddSingleton<IUserIdProvider, OidUserIdProvider>();
     }
 }

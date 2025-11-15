@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using Asp.Versioning;
 using Domain.Constants;
+using Exam.API.Hubs;
 using Exam.API.Mappers;
 using Exam.Services.Features.Account.Commands.AssignARoleToAnAccount;
 using Exam.Services.Features.Account.Commands.CreateAnAccount;
@@ -11,6 +12,7 @@ using Exam.Services.Features.Account.Queries.GetUsers;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.SignalR;
 
 namespace Exam.API.Controllers.v1;
 
@@ -19,11 +21,13 @@ namespace Exam.API.Controllers.v1;
 [Route("api/v{v:apiVersion}/accounts")]
 public class AccountController : ControllerBase
 {
+    private readonly IHubContext<AccountNotificationsHub> _accountNotificationHub;
     private readonly ISender _sender;
 
-    public AccountController(ISender sender)
+    public AccountController(ISender sender, IHubContext<AccountNotificationsHub> accountNotificationHub)
     {
         _sender = sender;
+        _accountNotificationHub = accountNotificationHub;
     }
 
     [HttpPost]
@@ -40,6 +44,8 @@ public class AccountController : ControllerBase
     {
         var command = new AssignARoleToAnAccountCommand() { UserId = userId, AppRoleId = appRoleId };
         var result = await _sender.Send(command);
+        await _accountNotificationHub.Clients.User(userId.ToString())
+            .SendAsync("AccountUpdated", new { userId = userId.ToString() });
         return Ok(result.ToBaseApiResponse());
     }
 
@@ -62,7 +68,7 @@ public class AccountController : ControllerBase
     }
 
     [HttpGet]
-    // [Authorize(Roles = Roles.Admin)]
+    [Authorize(Roles = Roles.Admin)]
     public async Task<IActionResult> GetUsers([FromQuery] GetUsersQuery request)
     {
         var result = await _sender.Send(request);
@@ -80,7 +86,7 @@ public class AccountController : ControllerBase
     }
 
     [HttpGet("examiners")]
-    // [Authorize(Roles = $"{Roles.Admin},{Roles.Manager},{Roles.Moderator}")]
+    [Authorize(Roles = $"{Roles.Admin},{Roles.Manager},{Roles.Moderator}")]
     public async Task<IActionResult> GetExaminers([FromQuery] GetExaminersQuery request)
     {
         var result = await _sender.Send(request);
