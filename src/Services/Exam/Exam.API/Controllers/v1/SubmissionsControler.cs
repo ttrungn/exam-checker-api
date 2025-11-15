@@ -1,9 +1,13 @@
+using System.Security.Claims;
 using Asp.Versioning;
+using Domain.Constants;
 using Exam.API.Mappers;
 using Exam.Services.Features.Submission.Commands.CreateSubmissionsFromZipCommand;
 using Exam.Services.Features.Submission.Queries.GetSubmissionById;
 using Exam.Services.Features.Submission.Queries.GetSubmissions;
+using Exam.Services.Features.Submission.Queries.GetSubmissionByUser;
 using MediatR;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Exam.API.Controllers.v1;
@@ -45,4 +49,18 @@ public class SubmissionsController : ControllerBase
         var result = await _sender.Send(query, cancellationToken);
         return Ok(result.ToDataApiResponse());
     }
+    
+    [HttpGet("user")]
+    //[Authorize(Roles = $"{Roles.Examiner},{Roles.Moderator}")]
+    public async Task<IActionResult> GetSubmissionsByUser(
+        [FromQuery] GetSubmissionByUserQuery request,
+        CancellationToken cancellationToken = default)
+    {
+        var userId = Guid.Parse(User.FindFirstValue("http://schemas.microsoft.com/identity/claims/objectidentifier")!);
+        request.UserId = userId;
+        var result = await _sender.Send(request, cancellationToken);
+        return Ok(result.ToDataApiResponse());
+    }
+    
+
 }
