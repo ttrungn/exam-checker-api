@@ -27,7 +27,7 @@ public class GetSubjectsQueryValidator : AbstractValidator<GetSubjectsQuery>
             .GreaterThanOrEqualTo(0).WithMessage("Vui lòng nhập số trang lớn hơn hoặc 0!");
 
         RuleFor(x => x.PageSize)
-            .GreaterThan(0).WithMessage("Vui lòng nhập kỳ lớn hơn 0!");
+            .GreaterThan(0).WithMessage("Vui lòng nhập số lượng lớn hơn 0!");
     }
 }
 
