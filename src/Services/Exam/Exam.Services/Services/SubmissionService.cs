@@ -6,6 +6,7 @@ using Exam.Domain.Enums;
 using Exam.Repositories.Interfaces.Repositories;
 using Exam.Services.Exceptions;
 using Exam.Services.Features.Submission.Commands.CreateSubmissionsFromZipCommand;
+using Exam.Services.Features.Submission.Commands.UploadSubmissionFromZipCommand;
 using Exam.Services.Interfaces.Services;
 using Exam.Services.Models.Configurations;
 using Exam.Services.Models.Responses;
@@ -80,7 +81,7 @@ public class SubmissionService : ISubmissionService
     }
     
     // Service upload zip to azure blob storage
-    public async Task<DataServiceResponse<Guid>> UploadZipForProcessingAsync(CreateSubmissionsFromZipCommand command,
+    public async Task<DataServiceResponse<Guid>> UploadZipForProcessingAsync(UploadSubmissionFromZipCommand command,
         CancellationToken cancellationToken = default)
     {
         _logger.LogInformation("UploadZipForProcessingAsync invoked: ExamSubjectId={ExamSubjectId}, FileName={FileName}", 
