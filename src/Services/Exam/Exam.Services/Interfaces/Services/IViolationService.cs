@@ -15,5 +15,11 @@ public interface IViolationService
     Guid submissionId,
     ZipArchive studentZip,
     ValidationRules ruleSet,
+    string blobUrl,
     CancellationToken ct);
+
+    Task SaveViolationsAndUpdateSubmissionAsync(
+        Guid submissionId,
+        List<Violation> violations,
+        CancellationToken ct = default);
 }

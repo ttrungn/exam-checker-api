@@ -273,6 +273,7 @@ public class SubmissionService : ISubmissionService
                         submission.Id,
                         readableZip,
                         rules,
+                        sasUrl,
                         ct);
 
                     if (violationResult.Any())
