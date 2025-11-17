@@ -22,16 +22,15 @@ public class CreateAnAccountHandler : IRequestHandler<CreateAnAccountCommand, Ba
 
     public async Task<BaseServiceResponse> Handle(CreateAnAccountCommand request, CancellationToken cancellationToken)
     {
-        _logger.LogInformation("Creating MEMBER user for email seed {Email}", request.Email);
+        _logger.LogInformation("Creating MEMBER user for email seed {Email} with UPN {UserPrincipalName}",
+            request.Email, request.UserPrincipalName);
 
-        // Derive a safe mailNickname from the left part of the provided email
-        var mailNickname = request.Email.Split('@')[0]
+        // Derive a safe mailNickname from the left part of the provided UserPrincipalName
+        var mailNickname = request.UserPrincipalName.Split('@')[0]
             .Replace(".", "_")
             .Replace("-", "_")
             .Replace("+", "_");
 
-        // Build the UPN under your tenant domain
-        var userPrincipalName = $"{mailNickname}@{TenantDomain}";
 
         var user = new User
         {
@@ -40,7 +39,7 @@ public class CreateAnAccountHandler : IRequestHandler<CreateAnAccountCommand, Ba
             UserType = "Member",
             DisplayName = request.DisplayName ?? $"{request.GivenName} {request.Surname}".Trim(),
             MailNickname = mailNickname,
-            UserPrincipalName = userPrincipalName,
+            UserPrincipalName = $"{request.UserPrincipalName}@{TenantDomain}",
             GivenName = request.GivenName,
             Surname = request.Surname,
             JobTitle = request.JobTitle,
