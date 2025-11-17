@@ -13,6 +13,7 @@ public static class AccountConstants
 public record CreateAnAccountCommand : IRequest<BaseServiceResponse>
 {
     public string Email { get; set; } = null!;
+    public string UserPrincipalName { get; set; } = null!;
     public string? DisplayName { get; set; }
     public string InitialPassword { get; set; } = null!;
     public string? GivenName { get; set; }
@@ -46,6 +47,8 @@ public class CreateAnAccountCommandValidator : AbstractValidator<CreateAnAccount
         RuleFor(x => x.Email)
             .NotEmpty().WithMessage("Email is required.")
             .EmailAddress().WithMessage("Invalid email address format.");
+        RuleFor(x => x.UserPrincipalName)
+            .NotEmpty().WithMessage("UserPrincipalName is required.");
         RuleFor(x => x.DisplayName)
             .MaximumLength(256)
             .When(x => !string.IsNullOrWhiteSpace(x.DisplayName));
