@@ -6,11 +6,13 @@ using Exam.Domain.Enums;
 using Exam.Repositories.Interfaces.Repositories;
 using Exam.Services.Exceptions;
 using Exam.Services.Features.Submission.Commands.CreateSubmissionsFromZipCommand;
+using Exam.Services.Features.Submission.Commands.UploadSubmissionFromZipCommand;
 using Exam.Services.Interfaces.Services;
 using Exam.Services.Models.Configurations;
 using Exam.Services.Models.Responses;
 using Exam.Services.Models.Validations;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using static Microsoft.EntityFrameworkCore.DbLoggerCategory.Model;
@@ -59,7 +61,6 @@ public class SubmissionService : ISubmissionService
                 command.ZipFile.FileName,
                 command.ExamSubjectId,
                 command.ExaminerId,
-                command.ModeratorId,
                 cancellationToken);
 
             if (result.Success)
@@ -81,7 +82,7 @@ public class SubmissionService : ISubmissionService
     }
     
     // Service upload zip to azure blob storage
-    public async Task<DataServiceResponse<Guid>> UploadZipForProcessingAsync(CreateSubmissionsFromZipCommand command,
+    public async Task<DataServiceResponse<Guid>> UploadZipForProcessingAsync(UploadSubmissionFromZipCommand command,
         CancellationToken cancellationToken = default)
     {
         _logger.LogInformation("UploadZipForProcessingAsync invoked: ExamSubjectId={ExamSubjectId}, FileName={FileName}", 
@@ -132,7 +133,7 @@ public class SubmissionService : ISubmissionService
 
             // path/metadata cho trigger
             // vd: uploads/{examSubjectId}/{originalName}
-            var blobName = $"{command.ExamSubjectId}/{command.ZipFile!.FileName}";
+            var blobName = $"{command.ExamSubjectId}/{command.ExaminerId}/{command.ZipFile!.FileName}";
 
             await using var stream = command.ZipFile.OpenReadStream();
             await _blobService.UploadAsync(stream, blobName, uploadsContainer);
@@ -160,7 +161,6 @@ public class SubmissionService : ISubmissionService
         string zipFileName,
         Guid examSubjectId,
         Guid? examinerId,
-        Guid? moderatorId,
         CancellationToken ct)
     {
         _logger.LogInformation("ProcessZipCoreAsync invoked: ExamSubjectId={ExamSubjectId}, FileName={FileName}", 
@@ -253,7 +253,6 @@ public class SubmissionService : ISubmissionService
                         Id            = Guid.NewGuid(),
                         ExaminerId    = examinerId,
                         ExamSubjectId = examSubjectId,
-                        ModeratorId   = moderatorId,
                         AssignAt      = DateTimeOffset.UtcNow,
                         Status        = SubmissionStatus.Processing,
                         FileUrl       = sasUrl

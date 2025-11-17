@@ -1,12 +1,7 @@
 using Azure.Storage.Blobs;
 using Azure.Storage.Queues;
-using Exam.Repositories.Interfaces.Repositories;
-using Exam.Repositories.Repositories;
-using Exam.Repositories.Repositories.Contexts;
-using Exam.Services.Interfaces.Services;
-using Exam.Services.Models.Configurations;
-using Exam.Services.Services;
-using Microsoft.EntityFrameworkCore;
+using Domain.Models.Configurations;
+
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -21,13 +16,7 @@ var host = new HostBuilder()
     .ConfigureServices((context, services) =>
     {
         var configuration = context.Configuration;
-
-        services.AddDbContext<ApplicationDbContext>(options =>
-            options.UseSqlServer(configuration.GetConnectionString("DefaultConnection")));
-
-        services.AddScoped<IUnitOfWork, UnitOfWork<ApplicationDbContext>>();
         services.Configure<BlobSettings>(configuration.GetSection("Azure:BlobStorageSettings"));
-
         // Add BlobServiceClient
         services.AddSingleton(sp =>
         {
@@ -35,28 +24,6 @@ var host = new HostBuilder()
             return new BlobServiceClient(blobSettings.ConnectionString);
         });
 
-        // Configure QueueStorageSettings
-        services.Configure<QueueStorageSettings>(options =>
-        {
-            options.ConnectionString = configuration["Azure:QueueStorageSettings:ConnectionString"];
-            options.QueueNames = new QueueNameSettings
-            {
-                CompilationCheck = configuration["Azure:QueueStorageSettings:QueueNames:CompilationCheck"]
-            };
-        });
-
-        // Add QueueServiceClient
-        services.AddSingleton(provider =>
-        {
-            var settings = provider.GetRequiredService<IOptions<QueueStorageSettings>>().Value;
-            return new QueueServiceClient(settings.ConnectionString);
-        });
-
-        services.AddScoped<IAzureBlobService, AzureBlobService>();
-        services.AddScoped<ISubmissionService, SubmissionService>();
-        services.AddScoped<IViolationService, ViolationService>();
-        services.AddScoped<IAzureQueueService, AzureQueueService>();
-        
         // Configure HttpClient for calling Exam API
         services.AddHttpClient("ExamAPI", client =>
         {

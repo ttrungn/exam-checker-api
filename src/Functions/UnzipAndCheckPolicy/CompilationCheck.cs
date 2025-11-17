@@ -4,11 +4,11 @@ using System.Text;
 using System.Text.Json;
 using Azure.Storage.Blobs;
 using Azure.Storage.Queues.Models;
-using Exam.Domain.Enums;
-using Exam.Services.Models.QueueMessages;
+using Domain.Enums;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using UnzipAndCheckPolicy.Models;
 
 namespace UnzipAndCheckPolicy;
 

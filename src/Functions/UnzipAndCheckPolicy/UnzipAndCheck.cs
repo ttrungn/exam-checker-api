@@ -1,37 +1,36 @@
-using Exam.Services.Features.Submission.Commands.CreateSubmissionsFromZipCommand;
-using Exam.Services.Interfaces.Services;
-using Microsoft.AspNetCore.Http;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Extensions.Logging;
+using System.Net.Http.Headers;
 
 namespace UnzipAndCheckPolicy;
 
 public class UnzipAndCheck
 {
     private readonly ILogger<UnzipAndCheck> _logger;
-    private readonly ISubmissionService _submissionService;
+    private readonly IHttpClientFactory _httpClientFactory;
 
     public UnzipAndCheck(
         ILogger<UnzipAndCheck> logger,
-        ISubmissionService submissionService)
+        IHttpClientFactory httpClientFactory)
     {
         _logger = logger;
-        _submissionService = submissionService;
+        _httpClientFactory = httpClientFactory;
     }
 
-    // Blob: uploads/{examSubjectId}/{name}.zip
+    // Blob: uploads/{examSubjectId}/{examinerId}/{name}.zip
     [Function(nameof(UnzipAndCheck))]
     public async Task Run(
-        [BlobTrigger("uploads/{examSubjectId}/{name}", 
+        [BlobTrigger("uploads/{examSubjectId}/{examinerId}/{name}", 
             Connection = "AzureWebJobsStorage")]
         Stream zipStream,
         string examSubjectId,
+        string examinerId,
         string name,
         FunctionContext context)
     {
         _logger.LogInformation(
-            "Triggered for blob: uploads/{ExamSubjectId}/{Name}",
-            examSubjectId, name);
+            "Triggered for blob: uploads/{ExamSubjectId}/{ExaminerId}/{Name}",
+            examSubjectId, examinerId, name);
 
         // 1. Parse examSubjectId
         if (!Guid.TryParse(examSubjectId, out var examSubjectGuid))
@@ -39,42 +38,62 @@ public class UnzipAndCheck
             _logger.LogError("Invalid examSubjectId: {Value}", examSubjectId);
             return;
         }
-
-        var ct = context.CancellationToken;
-
-        // 2. Copy stream sang MemoryStream để tạo IFormFile
-        await using var mem = new MemoryStream();
-        await zipStream.CopyToAsync(mem, ct);
-        mem.Position = 0;
-
-        // 3. Tạo IFormFile giả lập từ MemoryStream
-        IFormFile formFile = new FormFile(mem, 0, mem.Length, "ZipFile", name)
+        
+        // 2. Parse examinerId
+        if (!Guid.TryParse(examinerId, out var examinerGuid))
         {
-            Headers = new HeaderDictionary(),
-            ContentType = "application/zip"
-        };
-
-        // 4. Build command để gọi service
-        var command = new CreateSubmissionsFromZipCommand
-        {
-            ExamSubjectId = examSubjectGuid,
-            ExaminerId   = null,    // encode thêm trong path/metadata của upload blob nếu cần
-            ModeratorId  = null,
-            ZipFile      = formFile
-        };
-
-        // 5. Gọi lại service để xử lý
-        var result = await _submissionService.CreateSubmissionsFromZipAsync(command, ct);
-
-        if (!result.Success)
-        {
-            _logger.LogError("Create submissions from zip failed: {Message}", result.Message);
+            _logger.LogError("Invalid examinerId: {Value}", examinerId);
             return;
         }
+        
+        var ct = context.CancellationToken;
 
-        _logger.LogInformation(
-            "Created {Count} submissions from blob {Name}",
-            result.Data?.Count ?? 0,
-            name);
+        try
+        {
+            // 3. Copy stream to memory to create form file
+            await using var mem = new MemoryStream();
+            await zipStream.CopyToAsync(mem, ct);
+            mem.Position = 0;
+
+            // 4. Create HTTP client and prepare multipart form data
+            var httpClient = _httpClientFactory.CreateClient("ExamAPI");
+            
+            using var formData = new MultipartFormDataContent();
+            
+            // Add file content
+            var fileContent = new StreamContent(mem);
+            fileContent.Headers.ContentType = new MediaTypeHeaderValue("application/zip");
+            formData.Add(fileContent, "ZipFile", name);
+            
+            // Add examSubjectId
+            formData.Add(new StringContent(examSubjectGuid.ToString()), "ExamSubjectId");
+            
+            // Add examinerId
+            formData.Add(new StringContent(examinerGuid.ToString()), "ExaminerId");
+
+            // 5. Call API endpoint for processing blob
+            var response = await httpClient.PostAsync("/api/v1/submissions/process-from-blob", formData, ct);
+
+            if (response.IsSuccessStatusCode)
+            {
+                _logger.LogInformation(
+                    "Successfully processed blob {Name} for ExamSubject {ExamSubjectId}",
+                    name, examSubjectId);
+            }
+            else
+            {
+                var errorContent = await response.Content.ReadAsStringAsync(ct);
+                _logger.LogError(
+                    "API call failed with status {StatusCode}: {Error}",
+                    response.StatusCode, errorContent);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, 
+                "Failed to process blob {Name} for ExamSubject {ExamSubjectId}", 
+                name, examSubjectId);
+            throw;
+        }
     }
 }

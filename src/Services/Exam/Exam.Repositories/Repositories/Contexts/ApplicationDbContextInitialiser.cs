@@ -615,10 +615,51 @@ public class ApplicationDbContextInitializer
                 IsActive = true
             }
         };
+        var violationStructureJson = """
+                                     {
+                                       "KeywordCheck": {
+                                         "Keywords": ["panther", "bear", "leopard", "chatgpt"],
+                                         "FileExtensions": [".cs", ".cshtml", ".html"]
+                                       },
+                                       "NameFormatMismatch": {
+                                         "NameFormat": "PE_PRN222_SU25_{StudentName}"
+                                       },
+                                       "CompilationError": true
+                                     }
+                                     """;
+        var examSubjects = new List<ExamSubject>
+        {
+            new ExamSubject
+            {
+                Id = Guid.Parse("ed2534e9-e37f-48b4-b634-dd84d25b184d"),
+                ExamId = Guid.Parse("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"), // ví dụ FALL25
+                // Subject PRN222 (đúng guid bạn seed ở trên)
+                SubjectId = Guid.Parse("e2d2c2b2-a2a2-9292-8282-727272727272"), // PRN222
+                ScoreStructure    = null,
+                ViolationStructure = violationStructureJson,
+                CreatedAt         = DateTime.UtcNow,
+                UpdatedAt         = DateTime.MinValue,
+                DeletedAt         = DateTime.MinValue,
+                IsActive          = true
+            },
+            new ExamSubject
+            {
+                Id = Guid.Parse("847a310f-5dd7-43ed-b3f9-f65ec65b499f"),
+                ExamId = Guid.Parse("cccccccc-cccc-cccc-cccc-cccccccccccc"), // ví dụ SUMMER25
+                SubjectId = Guid.Parse("e2d2c2b2-a2a2-9292-8282-727272727272"), // PRN222
+                ScoreStructure    = null,
+                ViolationStructure = violationStructureJson,
+                CreatedAt         = DateTime.UtcNow,
+                UpdatedAt         = DateTime.MinValue,
+                DeletedAt         = DateTime.MinValue,
+                IsActive          = true
+            }
+        };
 
-        //await _context.Semesters.AddRangeAsync(semesters);
-        //await _context.Exams.AddRangeAsync(exams);
-        //await _context.Subjects.AddRangeAsync(subjects);
-        //await _context.SaveChangesAsync();
+        // await _context.Semesters.AddRangeAsync(semesters);
+        // await _context.Exams.AddRangeAsync(exams);
+        // await _context.Subjects.AddRangeAsync(subjects);
+        // await _context.ExamSubjects.AddRangeAsync(examSubjects);
+        // await _context.SaveChangesAsync();
     }
 }

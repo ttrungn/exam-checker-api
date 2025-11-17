@@ -13,6 +13,7 @@ public class ApplicationDbContext : DbContext
     public DbSet<Semester> Semesters => Set<Semester>();
     public DbSet<Domain.Entities.Exam> Exams => Set<Domain.Entities.Exam>();
     public DbSet<Subject> Subjects => Set<Subject>();
+    public DbSet<ExamSubject> ExamSubjects => Set<ExamSubject>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {

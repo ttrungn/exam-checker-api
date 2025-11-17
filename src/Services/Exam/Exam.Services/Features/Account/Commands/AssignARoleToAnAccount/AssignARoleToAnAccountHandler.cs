@@ -69,8 +69,7 @@ public class AssignARoleToAnAccountHandler
         try
         {
             // 3) Delete existing directory roles first
-            var existingDirectoryRoles =
-                await _graphClientService.GetDirectoryRolesByNamesAsync(AdminDirectoryRoles, ct);
+            var existingDirectoryRoles = await _graphClientService.GetUserDirectoryRolesAsync(request.UserId, ct);
             foreach (var dirRole in existingDirectoryRoles)
             {
                 await _graphClient.DirectoryRoles[dirRole.Id!].Members[request.UserId.ToString()].Ref
@@ -135,7 +134,7 @@ public class AssignARoleToAnAccountHandler
 
             _logger.LogInformation("Assigned role to user: UserId={UserId}, AppRoleId={AppRoleId}", request.UserId,
                 request.AppRoleId);
-            return new BaseServiceResponse { Success = true, Message = "Assigned role to user successfully." };
+            return new BaseServiceResponse { Success = true, Message = "Thêm vai trò cho người dùng thành công!" };
         }
         catch (Exception ex)
         {

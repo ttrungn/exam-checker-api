@@ -84,7 +84,8 @@ public class GraphClientService : IGraphClientService
             catch (Exception ex) when (ex is not InvalidOperationException)
             {
                 _logger.LogError(ex, "Failed to fetch directory role: {RoleName}", name);
-                throw new ServiceUnavailableException("Đã có lỗi hệ thống xảy ra, vui lòng liên hệ admin để được hỗ trợ!");
+                throw new ServiceUnavailableException(
+                    "Đã có lỗi hệ thống xảy ra, vui lòng liên hệ admin để được hỗ trợ!");
             }
         }
 
@@ -110,7 +111,8 @@ public class GraphClientService : IGraphClientService
             if (sp is null)
             {
                 _logger.LogError("Service principal not found for clientId: {ClientId}", clientId);
-                throw new ServiceUnavailableException("Đã có lỗi hệ thống xảy ra, vui lòng liên hệ admin để được hỗ trợ!");
+                throw new ServiceUnavailableException(
+                    "Đã có lỗi hệ thống xảy ra, vui lòng liên hệ admin để được hỗ trợ!");
             }
 
             _logger.LogInformation("Found service principal: {SpId} for clientId: {ClientId}", sp.Id, clientId);
@@ -126,7 +128,7 @@ public class GraphClientService : IGraphClientService
     public async Task<List<AppRoleAssignment>> GetUserAppRolesAsync(Guid userId, Guid? resourceId = null,
         CancellationToken cancellationToken = default)
     {
-        _logger.LogInformation("Fetching app role assignments for user: {UserId}, ResourceId: {ResourceId}", 
+        _logger.LogInformation("Fetching app role assignments for user: {UserId}, ResourceId: {ResourceId}",
             userId, resourceId?.ToString() ?? "All");
 
         try
@@ -148,6 +150,36 @@ public class GraphClientService : IGraphClientService
         {
             _logger.LogError(ex, "Failed to fetch app role assignments for user {UserId}.", userId);
             throw new ServiceUnavailableException("Đã có lỗi hệ thống xảy ra, vui lòng liên hệ admin để được hỗ trợ!");
+        }
+    }
+
+    public async Task<List<DirectoryRole>> GetUserDirectoryRolesAsync(
+        Guid userId,
+        CancellationToken cancellationToken = default)
+    {
+        _logger.LogInformation("Fetching directory roles for user: {UserId}", userId);
+
+        try
+        {
+            var response = await _graphClient
+                .Users[userId.ToString()]
+                .MemberOf
+                .GraphDirectoryRole
+                .GetAsync(q =>
+                {
+                    q.QueryParameters.Select = ["id", "displayName"];
+                }, cancellationToken);
+
+            var directoryRoles = response?.Value?.ToList() ?? [];
+            _logger.LogInformation("Loaded {Count} directory roles for user {UserId}.", directoryRoles.Count, userId);
+
+            return directoryRoles;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to fetch directory roles for user {UserId}.", userId);
+            throw new ServiceUnavailableException(
+                "Đã có lỗi hệ thống xảy ra, vui lòng liên hệ admin để được hỗ trợ!");
         }
     }
 }

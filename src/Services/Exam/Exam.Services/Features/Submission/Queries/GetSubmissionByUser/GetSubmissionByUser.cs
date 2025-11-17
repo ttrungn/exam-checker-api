@@ -1,0 +1,212 @@
+﻿using System.Text.Json.Serialization;
+using Exam.Domain.Enums;
+using Exam.Repositories.Interfaces.Repositories;
+using Exam.Services.Exceptions;
+using Exam.Services.Features.Submission.Queries.GetSubmissions;
+using Exam.Services.Mappers;
+using Exam.Services.Models.Responses;
+using FluentValidation;
+using MediatR;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
+using Microsoft.Graph;
+
+namespace Exam.Services.Features.Submission.Queries.GetSubmissionByUser;
+
+public record GetSubmissionByUserQuery : IRequest<DataServiceResponse<GetSubmissionsDto>>
+{
+    [JsonIgnore]
+    public Guid UserId { get; set; }
+    
+    public int PageIndex { get; set; } = 1;
+    public int PageSize { get; set; } = 10;
+    public int IndexFrom { get; set; } = 1;
+    public string? ExamCode { get; init; }
+    public string? SubjectCode { get; init; }
+    public SubmissionStatus? Status { get; init; }
+    
+    /// <summary>
+    /// Role của user: Examiner hoặc Moderator
+    /// </summary>
+    public UserRole Role { get; init; } = UserRole.Examiner;
+}
+
+public enum UserRole
+{
+    Examiner,
+    Moderator
+}
+
+public class GetSubmissionByUserValidator : AbstractValidator<GetSubmissionByUserQuery>
+{
+    public GetSubmissionByUserValidator()
+    {
+        RuleFor(x => x.UserId)
+            .NotEmpty().WithMessage("UserId is required.");
+        
+        RuleFor(x => x.IndexFrom)
+            .GreaterThanOrEqualTo(0).WithMessage("IndexFrom must be at least 0.");
+
+        RuleFor(x => x.PageIndex)
+            .GreaterThanOrEqualTo(1).WithMessage("PageIndex must be at least 1.")
+            .GreaterThanOrEqualTo(x => x.IndexFrom).WithMessage("PageIndex must be >= IndexFrom.");
+
+        RuleFor(x => x.PageSize)
+            .InclusiveBetween(1, 100).WithMessage("PageSize must be between 1 and 100.");
+    }
+}
+
+public class GetSubmissionByUserHandler
+    : IRequestHandler<GetSubmissionByUserQuery, DataServiceResponse<GetSubmissionsDto>>
+{
+    private readonly IUnitOfWork _unitOfWork;
+    private readonly ILogger<GetSubmissionByUserHandler> _logger;
+    private readonly GraphServiceClient _graphClient;
+
+    public GetSubmissionByUserHandler(
+        IUnitOfWork unitOfWork,
+        ILogger<GetSubmissionByUserHandler> logger,
+        GraphServiceClient graphClient)
+    {
+        _unitOfWork = unitOfWork;
+        _logger = logger;
+        _graphClient = graphClient;
+    }
+
+    public async Task<DataServiceResponse<GetSubmissionsDto>> Handle(
+        GetSubmissionByUserQuery request,
+        CancellationToken ct)
+    {
+        _logger.LogInformation(
+            "GetSubmissionByUser invoked. UserId={UserId}, Role={Role}, ExamCode={ExamCode}, SubjectCode={SubjectCode}, Status={Status}",
+            request.UserId,
+            request.Role,
+            request.ExamCode,
+            request.SubjectCode,
+            request.Status);
+
+        try
+        {
+            var repository = _unitOfWork.GetRepository<Exam.Domain.Entities.Submission>();
+            
+            var query = repository.Query()
+                .Include(s => s.ExamSubject)
+                    .ThenInclude(es => es.Exam)
+                .Include(s => s.ExamSubject)
+                    .ThenInclude(es => es.Subject)
+                .AsNoTracking();
+            
+            if (request.Role == UserRole.Examiner)
+            {
+                query = query.Where(s => s.ExaminerId == request.UserId);
+            }
+            else if (request.Role == UserRole.Moderator)
+            {
+                query = query.Where(s => s.ModeratorId == request.UserId);
+            }
+            
+            if (!string.IsNullOrWhiteSpace(request.ExamCode))
+            {
+                query = query.Where(s => s.ExamSubject != null && 
+                    s.ExamSubject.Exam != null && s.ExamSubject.Exam.Code.Contains(request.ExamCode));
+            }
+            
+            if (!string.IsNullOrWhiteSpace(request.SubjectCode))
+            {
+                query = query.Where(s => s.ExamSubject != null && 
+                    s.ExamSubject.Subject != null && s.ExamSubject.Subject.Code.Contains(request.SubjectCode));
+            }
+            
+            if (request.Status.HasValue)
+            {
+                query = query.Where(s => s.Status == request.Status.Value);
+            }
+            
+            query = query.OrderByDescending(s => s.CreatedAt);
+            
+            var totalCount = await query.CountAsync(ct);
+            
+            var submissions = await query
+                .Skip((request.PageIndex - request.IndexFrom) * request.PageSize)
+                .Take(request.PageSize)
+                .Select(s => s.ToSubmissionItemDto())
+                .ToListAsync(ct);
+            
+            var userIds = new HashSet<Guid>();
+            foreach (var submission in submissions)
+            {
+                if (submission.ExaminerId.HasValue)
+                    userIds.Add(submission.ExaminerId.Value);
+                if (submission.ModeratorId.HasValue)
+                    userIds.Add(submission.ModeratorId.Value);
+            }
+
+            var userEmailCache = new Dictionary<Guid, string>();
+
+            if (userIds.Any())
+            {
+                foreach (var userId in userIds)
+                {
+                    try
+                    {
+                        var user = await _graphClient.Users[userId.ToString()].GetAsync(r =>
+                        {
+                            r.QueryParameters.Select = ["mail", "userPrincipalName"];
+                        }, ct);
+
+                        if (user != null)
+                        {
+                            userEmailCache[userId] = user.Mail ?? user.UserPrincipalName ?? "";
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogWarning(ex, "Failed to get user info for {UserId}", userId);
+                        userEmailCache[userId] = "";
+                    }
+                }
+            }
+
+            // Map email vào DTO
+            foreach (var submission in submissions)
+            {
+                if (submission.ExaminerId.HasValue && userEmailCache.ContainsKey(submission.ExaminerId.Value))
+                {
+                    submission.ExaminerEmail = userEmailCache[submission.ExaminerId.Value];
+                }
+
+                if (submission.ModeratorId.HasValue && userEmailCache.ContainsKey(submission.ModeratorId.Value))
+                {
+                    submission.ModeratorEmail = userEmailCache[submission.ModeratorId.Value];
+                }
+            }
+            
+            var totalPages = (int)Math.Ceiling(totalCount / (double)request.PageSize);
+            
+            var pagedSubmissions = new GetSubmissionsDto(submissions, request.PageIndex, request.PageSize, request.IndexFrom);
+            
+            // Override lại các giá trị pagination đã tính từ database
+            pagedSubmissions.TotalCount = totalCount;
+            pagedSubmissions.TotalPages = totalPages;
+
+            _logger.LogInformation(
+                "GetSubmissionByUser success: Retrieved {Count} submissions out of {Total} for UserId={UserId}, Role={Role}", 
+                submissions.Count, 
+                totalCount,
+                request.UserId,
+                request.Role);
+
+            return new DataServiceResponse<GetSubmissionsDto>()
+            {
+                Success = true,
+                Message = $"Lấy danh sách submissions của {request.Role} thành công",
+                Data = pagedSubmissions
+            };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "GetSubmissionByUser failed for UserId={UserId}", request.UserId);
+            throw new ServiceUnavailableException("Đã có lỗi hệ thống xảy ra, vui lòng liên hệ admin để được hỗ trợ!");
+        }
+    }
+}

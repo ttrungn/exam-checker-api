@@ -43,7 +43,7 @@ public class SubjectsController : ControllerBase
     [HttpPut("{id:guid}")]
     public async Task<IResult> UpdateAsync(
         [FromRoute] Guid id,
-        [FromForm] SubjectRequest request,
+        [FromBody] SubjectRequest request,
         CancellationToken cancellationToken = default)
     {
         var command = new UpdateSubjectCommand()
