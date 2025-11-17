@@ -1,6 +1,7 @@
 using System.Reflection;
 using Azure.Identity;
 using Azure.Storage.Blobs;
+using Azure.Storage.Queues;
 using Exam.Services.Behaviours;
 using Exam.Services.Interfaces.Services;
 using Exam.Services.Models.Configurations;
@@ -47,5 +48,16 @@ public static class DependencyInjection
         var blobConnectionString = blobSettings.GetValue<string>("ConnectionString");
         builder.Services.Configure<BlobSettings>(blobSettings);
         builder.Services.AddSingleton(new BlobServiceClient(blobConnectionString));
+
+        //Queue Settings - Fix: Use Bind instead of Configure for complex objects
+        var queueSettings = builder.Configuration.GetSection("Azure:QueueStorageSettings");
+        var queueConnectionString = queueSettings.GetValue<string>("ConnectionString");
+        
+        var queueStorageSettings = new QueueStorageSettings();
+        queueSettings.Bind(queueStorageSettings);
+        builder.Services.AddSingleton(Microsoft.Extensions.Options.Options.Create(queueStorageSettings));
+        
+        builder.Services.AddSingleton(new QueueServiceClient(queueConnectionString));
+        builder.Services.AddScoped<IAzureQueueService, AzureQueueService>();
     }
 }

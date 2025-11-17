@@ -4,10 +4,12 @@ using System.IO.Compression;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Domain.Constants;
 using Exam.Domain.Entities;
 using Exam.Domain.Enums;
 using Exam.Repositories.Interfaces.Repositories;
 using Exam.Services.Interfaces.Services;
+using Exam.Services.Models.QueueMessages;
 using Exam.Services.Models.Validations;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -17,20 +19,23 @@ public class ViolationService : IViolationService
 {
     private readonly IUnitOfWork _unitOfWork;
     private readonly ILogger<ViolationService> _logger;
+    private readonly IAzureQueueService _azureQueueService;
 
-    public ViolationService(IUnitOfWork unitOfWork, ILogger<ViolationService> logger)
+    public ViolationService(IUnitOfWork unitOfWork, ILogger<ViolationService> logger,
+        IAzureQueueService azureQueueService
+
+        )
     {
         _unitOfWork = unitOfWork;
         _logger = logger;
+        _azureQueueService = azureQueueService;
     }
 
-    public Task<List<Violation>> ValidateSubmissionAsync(Guid submissionId, ZipArchive studentZip, ValidationRules ruleSet, CancellationToken ct)
+    public async Task<List<Violation>> ValidateSubmissionAsync(Guid submissionId, ZipArchive studentZip, ValidationRules ruleSet, string blobUrl, CancellationToken ct)
     {
         _logger.LogInformation("Starting validation for submission {SubmissionId}", submissionId);
 
         var violations = new List<Violation>();
-
- 
 
         var innerZip = TryGetInnerZip(studentZip);
         if (innerZip == null)
@@ -42,7 +47,7 @@ public class ViolationService : IViolationService
                 ViolationType = ViolationPolicy.WrongProjectStructure,
                 Description = "Nested solution.zip not found — invalid submission structure."
             });
-            return Task.FromResult(violations);
+            return violations;
         }
 
         _logger.LogInformation("Validating solution.zip contents for submission {SubmissionId}", submissionId);
@@ -69,9 +74,14 @@ public class ViolationService : IViolationService
             }
         }
 
+        if(ruleSet.CompilationError)
+        {
+            await ValidateCompilationAsync(submissionId, blobUrl, ct);
+        }
+
         _logger.LogInformation("Validation completed for submission {SubmissionId}. Total violations: {Count}", submissionId, violations.Count);
 
-        return Task.FromResult(violations);
+        return violations;
     }
 
     #region Helpers
@@ -210,13 +220,17 @@ public class ViolationService : IViolationService
         return null;
     }
 
-    //private  Task<List<Violation>> ValidateCompilationAsync(
-    //    Guid submissionId,
-    //    ZipArchive zip,
-    //    CancellationToken ct)
-    //{
-    //    throw new NotImplementedException();
-    //}
+    private async Task ValidateCompilationAsync(
+        Guid submissionId,
+        string url,
+        CancellationToken ct)
+    {
+        await _azureQueueService.SendMessageAsync<CompilationCheckQueueMessage>(QueueNames.CompilationCheck, new CompilationCheckQueueMessage
+        {
+            SubmissionId = submissionId,
+            BlobUrl = url,
+        });
+    }
 
     private ZipArchive? TryGetInnerZip(ZipArchive outerZip)
     {
@@ -235,6 +249,45 @@ public class ViolationService : IViolationService
         return new ZipArchive(ms, ZipArchiveMode.Read);
     }
 
+    public async Task SaveViolationsAndUpdateSubmissionAsync(
+        Guid submissionId,
+        List<Violation> violations,
+        CancellationToken ct = default)
+    {
+        _logger.LogInformation("Saving {Count} violations for submission {SubmissionId}", violations.Count, submissionId);
+
+        var submissionRepo = _unitOfWork.GetRepository<Submission>();   
+
+        var submission = await submissionRepo.Query()
+            .FirstOrDefaultAsync(s => s.Id == submissionId, ct);
+
+        if (submission == null)
+        {
+            _logger.LogError("Submission {SubmissionId} not found", submissionId);
+            throw new InvalidOperationException($"Submission {submissionId} not found");
+        }
+
+        // Add violations to database
+        if (violations.Any())
+        {
+            var violationRepo = _unitOfWork.GetRepository<Violation>();
+            foreach (var violation in violations)
+            {
+                await violationRepo.InsertAsync(violation, ct);
+            }
+
+            submission.Status = SubmissionStatus.Violated;
+            _logger.LogInformation("Submission {SubmissionId} marked as Violated", submissionId);
+        }
+        else if (submission.Status != SubmissionStatus.Violated)
+        {
+            submission.Status = SubmissionStatus.Validated;
+            _logger.LogInformation("Submission {SubmissionId} marked as Validated (no violations)", submissionId);
+        }
+
+        await _unitOfWork.SaveChangesAsync();
+        _logger.LogInformation("Violations saved and submission status updated for {SubmissionId}", submissionId);
+    }
 
     #endregion
 }

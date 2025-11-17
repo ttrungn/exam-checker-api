@@ -18,7 +18,7 @@ public class CreateSubmissionFromZipHandler : IRequestHandler<CreateSubmissionsF
     
     public async Task<DataServiceResponse<List<Guid>>> Handle(CreateSubmissionsFromZipCommand  request, CancellationToken cancellationToken)
     {
-        var uploadResult = await _service.UploadZipForProcessingAsync(request, cancellationToken);
+        var uploadResult = await _service.CreateSubmissionsFromZipAsync(request, cancellationToken);
         if (!uploadResult.Success)
         {
             return new()
@@ -27,14 +27,12 @@ public class CreateSubmissionFromZipHandler : IRequestHandler<CreateSubmissionsF
                 Message = uploadResult.Message
             };
         }
-
-        // vì xử lý async bằng Function, ở đây chưa có list Guid
-        // tuỳ bạn: trả về Data = null hoặc đổi sang response type khác
+        
         return new()
         {
             Success = true,
-            Message = "File đã upload, submissions sẽ được tạo bởi background Function.",
-            Data    = new List<Guid>() // hoặc null
+            Message = "Submissions created successfully.",
+            Data = uploadResult.Data
         };
     }
 }

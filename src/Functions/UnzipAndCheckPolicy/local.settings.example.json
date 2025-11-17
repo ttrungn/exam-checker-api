@@ -4,10 +4,15 @@
     "AzureWebJobsStorage": "your local storage connection string",
     "FUNCTIONS_WORKER_RUNTIME": "dotnet-isolated",
     
-    "ConnectionStrings:DefaultConnection": "your coffee store connection string",
+    "ExamAPI:BaseUrl": "http://localhost:5248",
+
+    "ConnectionStrings:DefaultConnection": "tu them vo de",
     
     "Azure:BlobStorageSettings:ConnectionString": "your local storage connection string",
     "Azure:BlobStorageSettings:DefaultContainer": "subjects",
-    "Azure:BlobStorageSettings:UploadsContainer": "uploads"
+    "Azure:BlobStorageSettings:UploadsContainer": "uploads",
+    
+    "Azure:QueueStorageSettings:ConnectionString": "tu them vo de",
+    "Azure:QueueStorageSettings:QueueNames:CompilationCheck": "compilation-check-items"
   }
 }

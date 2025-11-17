@@ -656,10 +656,10 @@ public class ApplicationDbContextInitializer
             }
         };
 
-        await _context.Semesters.AddRangeAsync(semesters);
-        await _context.Exams.AddRangeAsync(exams);
-        await _context.Subjects.AddRangeAsync(subjects);
-        await _context.ExamSubjects.AddRangeAsync(examSubjects);
-        await _context.SaveChangesAsync();
+        // await _context.Semesters.AddRangeAsync(semesters);
+        // await _context.Exams.AddRangeAsync(exams);
+        // await _context.Subjects.AddRangeAsync(subjects);
+        // await _context.ExamSubjects.AddRangeAsync(examSubjects);
+        // await _context.SaveChangesAsync();
     }
 }
