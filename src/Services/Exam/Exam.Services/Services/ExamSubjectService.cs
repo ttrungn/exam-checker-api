@@ -60,14 +60,14 @@ public class ExamSubjectService : IExamSubjectService
             .Include(es => es.Exam)
             .AsNoTracking();
 
-        if (query.ExamId.HasValue)
+        if (!string.IsNullOrEmpty(query.ExamCode))
         {
-            dbQuery = dbQuery.Where(es => es.ExamId == query.ExamId.Value);
+            dbQuery = dbQuery.Where(es => es.Exam.Code.Equals(query.ExamCode,StringComparison.OrdinalIgnoreCase));
         }
 
-        if (query.SubjectId.HasValue)
+        if (!string.IsNullOrEmpty(query.SubjectCode))
         {
-            dbQuery = dbQuery.Where(es => es.SubjectId == query.SubjectId.Value);
+            dbQuery = dbQuery.Where(es => es.Subject.Code.Equals(query.SubjectCode, StringComparison.OrdinalIgnoreCase));
         }
 
         if (query.IsActive.HasValue)

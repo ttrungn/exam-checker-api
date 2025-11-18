@@ -1,5 +1,6 @@
 using Exam.Domain.Entities;
 using Exam.Services.Models.Responses.ExamSubjects;
+using Microsoft.Graph.Models;
 
 namespace Exam.Services.Mappers;
 
@@ -16,8 +17,8 @@ public static class ExamSubjectMapper
             SubjectCode = examSubject.Subject?.Code ?? string.Empty,
             ScoreStructure = examSubject.ScoreStructure,
             ViolationStructure = examSubject.ViolationStructure,
-            CreatedAt = examSubject.CreatedAt,
-            UpdatedAt = examSubject.UpdatedAt,
+            StartDate = examSubject.Exam!.StartDate,
+            EndDate = examSubject.Exam!.EndDate,
             IsActive = examSubject.IsActive
         };
     }

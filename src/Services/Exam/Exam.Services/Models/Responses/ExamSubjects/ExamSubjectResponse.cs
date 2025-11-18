@@ -16,8 +16,8 @@ public class ExamSubjectResponse
 
     public string? ScoreStructure { get; set; }
     public string? ViolationStructure { get; set; }
-    public DateTime CreatedAt { get; set; }
-    public DateTime UpdatedAt { get; set; }
+    public DateTimeOffset StartDate { get; set; }
+    public DateTimeOffset EndDate { get; set; }
     public bool IsActive { get; set; }
     
    

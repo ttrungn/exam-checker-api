@@ -7,8 +7,9 @@ namespace Exam.Services.Features.ExamSubjects.Queries.GetExamSubjects;
 
 public record GetExamSubjectsQuery : IRequest<BaseServiceResponse>
 {
-    public Guid? ExamId { get; init; }
-    public Guid? SubjectId { get; init; }
+    public string? ExamCode { get; init; }
+    
+    public string? SubjectCode { get; init; }
     public bool? IsActive { get; init; }
     public int PageIndex { get; init; } = 1;
     public int PageSize { get; init; } = 10;
