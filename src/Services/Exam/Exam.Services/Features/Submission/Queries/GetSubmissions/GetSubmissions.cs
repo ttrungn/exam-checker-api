@@ -21,6 +21,8 @@ public record GetSubmissionsQuery : IRequest<DataServiceResponse<GetSubmissionsD
     public SubmissionStatus? Status { get; init; }
     public string? ExaminerName { get; init; }
     public string? ModeratorName { get; init; }
+    public string? SubmissionName { get; init; }
+    public AssessmentStatus? AssessmentStatus { get; init; }
 }
 
 public class GetSubmissionsQueryValidator : AbstractValidator<GetSubmissionsQuery>
@@ -61,12 +63,14 @@ public class GetSubmissionsHandler
         CancellationToken ct)
     {
         _logger.LogInformation(
-            "GetSubmissions invoked. ExamCode={ExamCode}, SubjectCode={SubjectCode}, Status={Status}, ExaminerName={ExaminerName}, ModeratorName={ModeratorName}, Page=({IndexFrom},{PageIndex},{PageSize})",
+            "GetSubmissions invoked. ExamCode={ExamCode}, SubjectCode={SubjectCode}, Status={Status}, ExaminerName={ExaminerName}, ModeratorName={ModeratorName}, SubmissionName={SubmissionName}, AssessmentStatus={AssessmentStatus}, Page=({IndexFrom},{PageIndex},{PageSize})",
             request.ExamCode,
             request.SubjectCode,
             request.Status,
             request.ExaminerName,
             request.ModeratorName,
+            request.SubmissionName,
+            request.AssessmentStatus,
             request.IndexFrom,
             request.PageIndex,
             request.PageSize);
@@ -80,6 +84,7 @@ public class GetSubmissionsHandler
                     .ThenInclude(es => es.Exam)
                 .Include(s => s.ExamSubject)
                     .ThenInclude(es => es.Subject)
+                .Include(s => s.Assessments)
                 .AsNoTracking();
 
             // Filter by ExamCode 
@@ -100,6 +105,19 @@ public class GetSubmissionsHandler
             if (request.Status.HasValue)
             {
                 query = query.Where(s => s.Status == request.Status.Value);
+            }
+
+            // Filter by SubmissionName (search in Assessments)
+            if (!string.IsNullOrWhiteSpace(request.SubmissionName))
+            {
+                query = query.Where(s => s.Assessments.Any(a => 
+                    a.SubmissionName != null && a.SubmissionName.Contains(request.SubmissionName)));
+            }
+
+            // Filter by AssessmentStatus
+            if (request.AssessmentStatus.HasValue)
+            {
+                query = query.Where(s => s.Assessments.Any(a => a.Status == request.AssessmentStatus.Value));
             }
 
             // Filter by ExaminerEmail
@@ -172,7 +190,7 @@ public class GetSubmissionsHandler
             var submissions = await query
                 .Skip((request.PageIndex - request.IndexFrom) * request.PageSize)
                 .Take(request.PageSize)
-                .Select(s => s.ToSubmissionItemDto())
+                .Select(s => s.ToManagerSubmissionDto())
                 .ToListAsync(ct);
 
             // Lấy email của Examiner và Moderator từ Azure AD

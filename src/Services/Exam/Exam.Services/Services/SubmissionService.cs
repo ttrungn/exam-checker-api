@@ -185,7 +185,7 @@ public class SubmissionService : ISubmissionService
         var submissionRepo = _unitOfWork.GetRepository<Submission>();
         var violationRepo = _unitOfWork.GetRepository<Violation>();
         var examSubjectRepo = _unitOfWork.GetRepository<ExamSubject>();
-
+        var assessmentRepo   = _unitOfWork.GetRepository<Assessment>();
 
         var examSubject = await examSubjectRepo.Query()
             .FirstOrDefaultAsync(es => es.Id == examSubjectId, ct); 
@@ -261,8 +261,21 @@ public class SubmissionService : ISubmissionService
                     await submissionRepo.InsertAsync(submission, ct);
                     createdIds.Add(submission.Id);
                     submissionList.Add(submission);
-
-
+                    
+                    //create assessment record
+                    var assessment = new Assessment
+                    {
+                        SubmissionId   = submission.Id,
+                        ExaminerId     = examinerId.Value,
+                        StudentCode    = topLevel,
+                        SubmissionName = topLevel, 
+                        Status         = AssessmentStatus.Pending,
+                    };
+                        await assessmentRepo.InsertAsync(assessment, ct);
+                        _logger.LogDebug("Created assessment {AssessmentId} for submission {SubmissionId} (student: {StudentCode})",
+                            assessment.Id, submission.Id, topLevel);
+                    
+                    
                     // Reset stream position for validation 
                     zms.Position = 0;
 
