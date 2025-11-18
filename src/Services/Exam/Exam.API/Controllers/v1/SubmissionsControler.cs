@@ -7,6 +7,7 @@ using Exam.Services.Features.Submission.Queries.GetSubmissionById;
 using Exam.Services.Features.Submission.Queries.GetSubmissions;
 using Exam.Services.Features.Submission.Queries.GetSubmissionByUser;
 using Exam.Services.Interfaces.Services;
+using Exam.Services.Models.Requests.Submissions;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
 
@@ -78,12 +79,24 @@ public class SubmissionsController : ControllerBase
     [HttpGet("user")]
     //[Authorize(Roles = $"{Roles.Examiner},{Roles.Moderator}")]
     public async Task<IActionResult> GetSubmissionsByUser(
-        [FromQuery] GetSubmissionByUserQuery request,
+        [FromQuery] SubmissionRequest request,
         CancellationToken cancellationToken = default)
     {
         var userId = Guid.Parse(User.FindFirstValue("http://schemas.microsoft.com/identity/claims/objectidentifier")!);
-        request.UserId = userId;
-        var result = await _sender.Send(request, cancellationToken);
+        var query = new GetSubmissionByUserQuery() 
+        { 
+            UserId = userId,  
+            PageIndex = request.PageIndex, 
+            PageSize = request.PageSize, 
+            IndexFrom = request.IndexFrom, 
+            Role = request.Role, 
+            ExamCode = request.ExamCode, 
+            SubjectCode = request.SubjectCode, 
+            Status = request.Status,
+            SubmissionName = request.SubmissionName,
+            AssessmentStatus = request.AssessmentStatus
+        };    
+        var result = await _sender.Send(query, cancellationToken);
         return Ok(result.ToDataApiResponse());
     }
 }

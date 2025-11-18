@@ -618,7 +618,7 @@ public class ApplicationDbContextInitializer
         var violationStructureJson = """
                                      {
                                        "KeywordCheck": {
-                                         "Keywords": ["panther", "bear", "leopard", "chatgpt"],
+                                         "Keywords": ["bear", "leopard", "chatgpt"],
                                          "FileExtensions": [".cs", ".cshtml", ".html"]
                                        },
                                        "NameFormatMismatch": {

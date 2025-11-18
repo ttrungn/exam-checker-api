@@ -1,33 +1,26 @@
-﻿using System.Text.Json.Serialization;
-using Exam.Domain.Enums;
+﻿using Exam.Domain.Enums;
 using Exam.Repositories.Interfaces.Repositories;
 using Exam.Services.Exceptions;
-using Exam.Services.Features.Submission.Queries.GetSubmissions;
 using Exam.Services.Mappers;
 using Exam.Services.Models.Responses;
 using FluentValidation;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
-using Microsoft.Graph;
 
 namespace Exam.Services.Features.Submission.Queries.GetSubmissionByUser;
 
-public record GetSubmissionByUserQuery : IRequest<DataServiceResponse<GetSubmissionsDto>>
+public record GetSubmissionByUserQuery : IRequest<DataServiceResponse<GetSubmissionsByUserDto>>
 {
-    [JsonIgnore]
     public Guid UserId { get; set; }
-    
     public int PageIndex { get; set; } = 1;
     public int PageSize { get; set; } = 10;
     public int IndexFrom { get; set; } = 1;
     public string? ExamCode { get; init; }
     public string? SubjectCode { get; init; }
     public SubmissionStatus? Status { get; init; }
-    
-    /// <summary>
-    /// Role của user: Examiner hoặc Moderator
-    /// </summary>
+    public string? SubmissionName { get; init; }
+    public AssessmentStatus? AssessmentStatus { get; init; }
     public UserRole Role { get; init; } = UserRole.Examiner;
 }
 
@@ -57,33 +50,35 @@ public class GetSubmissionByUserValidator : AbstractValidator<GetSubmissionByUse
 }
 
 public class GetSubmissionByUserHandler
-    : IRequestHandler<GetSubmissionByUserQuery, DataServiceResponse<GetSubmissionsDto>>
+    : IRequestHandler<GetSubmissionByUserQuery, DataServiceResponse<GetSubmissionsByUserDto>>
 {
     private readonly IUnitOfWork _unitOfWork;
     private readonly ILogger<GetSubmissionByUserHandler> _logger;
-    private readonly GraphServiceClient _graphClient;
 
     public GetSubmissionByUserHandler(
         IUnitOfWork unitOfWork,
-        ILogger<GetSubmissionByUserHandler> logger,
-        GraphServiceClient graphClient)
+        ILogger<GetSubmissionByUserHandler> logger)
     {
         _unitOfWork = unitOfWork;
         _logger = logger;
-        _graphClient = graphClient;
     }
 
-    public async Task<DataServiceResponse<GetSubmissionsDto>> Handle(
+    public async Task<DataServiceResponse<GetSubmissionsByUserDto>> Handle(
         GetSubmissionByUserQuery request,
         CancellationToken ct)
     {
         _logger.LogInformation(
-            "GetSubmissionByUser invoked. UserId={UserId}, Role={Role}, ExamCode={ExamCode}, SubjectCode={SubjectCode}, Status={Status}",
+            "GetSubmissionByUser invoked. UserId={UserId}, Role={Role}, ExamCode={ExamCode}, SubjectCode={SubjectCode}, Status={Status}, SubmissionName={SubmissionName}, AssessmentStatus={AssessmentStatus}, Page=({IndexFrom},{PageIndex},{PageSize})",
             request.UserId,
             request.Role,
             request.ExamCode,
             request.SubjectCode,
-            request.Status);
+            request.Status,
+            request.SubmissionName,
+            request.AssessmentStatus,
+            request.IndexFrom,
+            request.PageIndex,
+            request.PageSize);
 
         try
         {
@@ -94,6 +89,7 @@ public class GetSubmissionByUserHandler
                     .ThenInclude(es => es.Exam)
                 .Include(s => s.ExamSubject)
                     .ThenInclude(es => es.Subject)
+                .Include(s => s.Assessments)
                 .AsNoTracking();
             
             if (request.Role == UserRole.Examiner)
@@ -107,14 +103,12 @@ public class GetSubmissionByUserHandler
             
             if (!string.IsNullOrWhiteSpace(request.ExamCode))
             {
-                query = query.Where(s => s.ExamSubject != null && 
-                    s.ExamSubject.Exam != null && s.ExamSubject.Exam.Code.Contains(request.ExamCode));
+                query = query.Where(s => s.ExamSubject != null && s.ExamSubject.Exam.Code.Contains(request.ExamCode));
             }
             
             if (!string.IsNullOrWhiteSpace(request.SubjectCode))
             {
-                query = query.Where(s => s.ExamSubject != null && 
-                    s.ExamSubject.Subject != null && s.ExamSubject.Subject.Code.Contains(request.SubjectCode));
+                query = query.Where(s => s.ExamSubject != null && s.ExamSubject.Subject.Code.Contains(request.SubjectCode));
             }
             
             if (request.Status.HasValue)
@@ -122,68 +116,32 @@ public class GetSubmissionByUserHandler
                 query = query.Where(s => s.Status == request.Status.Value);
             }
             
+            // Filter by SubmissionName (search in Assessments)
+            if (!string.IsNullOrWhiteSpace(request.SubmissionName))
+            {
+                query = query.Where(s => s.Assessments.Any(a => 
+                    a.SubmissionName != null && a.SubmissionName.Contains(request.SubmissionName)));
+            }
+            
+            // Filter by AssessmentStatus
+            if (request.AssessmentStatus.HasValue)
+            {
+                query = query.Where(s => s.Assessments.Any(a => a.Status == request.AssessmentStatus.Value));
+            }
+            
             query = query.OrderByDescending(s => s.CreatedAt);
             
-            var totalCount = await query.CountAsync(ct);
+            var totalCount = query.Count();
             
             var submissions = await query
                 .Skip((request.PageIndex - request.IndexFrom) * request.PageSize)
                 .Take(request.PageSize)
-                .Select(s => s.ToSubmissionItemDto())
+                .Select(s => s.ToUserSubmissionDto(request.UserId))
                 .ToListAsync(ct);
-            
-            var userIds = new HashSet<Guid>();
-            foreach (var submission in submissions)
-            {
-                if (submission.ExaminerId.HasValue)
-                    userIds.Add(submission.ExaminerId.Value);
-                if (submission.ModeratorId.HasValue)
-                    userIds.Add(submission.ModeratorId.Value);
-            }
-
-            var userEmailCache = new Dictionary<Guid, string>();
-
-            if (userIds.Any())
-            {
-                foreach (var userId in userIds)
-                {
-                    try
-                    {
-                        var user = await _graphClient.Users[userId.ToString()].GetAsync(r =>
-                        {
-                            r.QueryParameters.Select = ["mail", "userPrincipalName"];
-                        }, ct);
-
-                        if (user != null)
-                        {
-                            userEmailCache[userId] = user.Mail ?? user.UserPrincipalName ?? "";
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger.LogWarning(ex, "Failed to get user info for {UserId}", userId);
-                        userEmailCache[userId] = "";
-                    }
-                }
-            }
-
-            // Map email vào DTO
-            foreach (var submission in submissions)
-            {
-                if (submission.ExaminerId.HasValue && userEmailCache.ContainsKey(submission.ExaminerId.Value))
-                {
-                    submission.ExaminerEmail = userEmailCache[submission.ExaminerId.Value];
-                }
-
-                if (submission.ModeratorId.HasValue && userEmailCache.ContainsKey(submission.ModeratorId.Value))
-                {
-                    submission.ModeratorEmail = userEmailCache[submission.ModeratorId.Value];
-                }
-            }
             
             var totalPages = (int)Math.Ceiling(totalCount / (double)request.PageSize);
             
-            var pagedSubmissions = new GetSubmissionsDto(submissions, request.PageIndex, request.PageSize, request.IndexFrom);
+            var pagedSubmissions = new GetSubmissionsByUserDto(submissions, request.PageIndex, request.PageSize, request.IndexFrom);
             
             // Override lại các giá trị pagination đã tính từ database
             pagedSubmissions.TotalCount = totalCount;
@@ -196,7 +154,7 @@ public class GetSubmissionByUserHandler
                 request.UserId,
                 request.Role);
 
-            return new DataServiceResponse<GetSubmissionsDto>()
+            return new DataServiceResponse<GetSubmissionsByUserDto>()
             {
                 Success = true,
                 Message = $"Lấy danh sách submissions của {request.Role} thành công",
