@@ -9,6 +9,7 @@ public class Submission : BaseAuditableEntity<Guid>
     public Guid? ModeratorId { get; set; }
     public DateTimeOffset AssignAt { get; set; }
     public SubmissionStatus Status { get; set; } = SubmissionStatus.Processing;
+    public GradeStatus GradeStatus { get; set; } = GradeStatus.NotGraded;
     public string? FileUrl { get; set; }
     public ExamSubject? ExamSubject { get; set; }
     public ICollection<Assessment> Assessments { get; set; } = new List<Assessment>();

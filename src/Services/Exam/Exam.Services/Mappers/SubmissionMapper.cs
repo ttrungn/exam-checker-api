@@ -24,6 +24,7 @@ public static class SubmissionMapper
             ModeratorEmail = null,
             AssignAt      = submission.AssignAt,
             Status        = submission.Status,
+            GradeStatus   = submission.GradeStatus,
             FileUrl       = submission.FileUrl,
             CreatedAt     = submission.CreatedAt,
             UpdatedAt     = submission.UpdatedAt,
@@ -38,27 +39,27 @@ public static class SubmissionMapper
                 .OrderBy(a => a.CreatedAt)
                 .Select(a => new AssessmentSummary
                 {
-                    Id           = a.Id,
+                    Id             = a.Id,
+                    ExaminerId     = a.ExaminerId,
+                    ExaminerEmail  = null, // sẽ fill sau bằng Graph trong handler
                     SubmissionName = a.SubmissionName!,
-                    Status       = a.Status,
-                    Score        = a.Score,
-                    GradedAt     = a.GradedAt
+                    Status         = a.Status,
+                    Score          = a.Score,
+                    GradedAt       = a.GradedAt
                 })
                 .ToList();
         }
 
         return dto;
     }
-
-    // Dùng cho màn hình examiner/moderator (GetSubmissionByUser): 
-    // chỉ quan tâm đến assessment của chính current user
+    
     public static SubmissionUserItemDto ToUserSubmissionDto(
         this Submission submission,
         Guid currentUserId)
     {
        
         var myAssessment = submission.Assessments
-            .Where(a => a.ExaminerId == currentUserId && a.SubmissionId == submission.Id)   // nếu sau này có ModeratorAssessment thì sửa filter ở đây
+            .Where(a => a.ExaminerId == currentUserId && a.SubmissionId == submission.Id)
             .OrderByDescending(a => a.CreatedAt)
             .FirstOrDefault();
 
@@ -72,12 +73,13 @@ public static class SubmissionMapper
             SubjectIdCode = submission.ExamSubject?.Subject?.Code,
             AssignAt      = submission.AssignAt,
             Status        = submission.Status,
+            GradeStatus   = submission.GradeStatus,
             FileUrl       = submission.FileUrl,
 
             AssessmentId     = myAssessment?.Id,
             SubmissionName   = myAssessment?.SubmissionName,
             AssessmentStatus = myAssessment?.Status,
-            MyScore            = myAssessment?.Score
+            MyScore          = myAssessment?.Score
         };
     }
 }

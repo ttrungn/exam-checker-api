@@ -298,6 +298,12 @@ namespace Exam.Repositories.Migrations
                     b.Property<string>("FileUrl")
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<string>("GradeStatus")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("nvarchar(max)")
+                        .HasDefaultValue("NotGraded");
+
                     b.Property<bool>("IsActive")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("bit")

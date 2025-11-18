@@ -12,7 +12,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Exam.Repositories.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20251117042505_Initial")]
+    [Migration("20251118103434_Initial")]
     partial class Initial
     {
         /// <inheritdoc />
@@ -300,6 +300,12 @@ namespace Exam.Repositories.Migrations
 
                     b.Property<string>("FileUrl")
                         .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("GradeStatus")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("nvarchar(max)")
+                        .HasDefaultValue("NotGraded");
 
                     b.Property<bool>("IsActive")
                         .ValueGeneratedOnAdd()

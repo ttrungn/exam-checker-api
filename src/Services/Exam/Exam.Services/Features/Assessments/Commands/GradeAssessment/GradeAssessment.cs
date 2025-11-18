@@ -93,6 +93,37 @@ public class GradeAssessmentCommandHandler
         assessment.Comment      = request.Comment;
         assessment.GradedAt     = DateTimeOffset.UtcNow;
 
+        // Set status to Complete when graded
+        if (assessment.Status != AssessmentStatus.Complete)
+        {
+            assessment.Status = AssessmentStatus.Complete;
+            _logger.LogInformation("Assessment {Id} status updated to Complete.", assessment.Id);
+        }
+        
+        var totalAssessmentsCount = repo
+            .Query().Count(a => a.SubmissionId == assessment.SubmissionId);
+        
+        var submission = assessment.Submission!;
+        // Only auto-update GradeStatus if submission has exactly 1 assessment
+        if (totalAssessmentsCount == 1)
+        {
+            if (submission.GradeStatus != GradeStatus.Graded)
+            {
+                submission.GradeStatus = GradeStatus.Graded;
+                _logger.LogInformation(
+                    "Submission {SubmissionId} GradeStatus updated to Graded (has 1 assessment and it's complete).", 
+                    submission.Id);
+            }
+            
+            // If submission has >= 2 assessments, don't auto-update GradeStatus
+            else if (totalAssessmentsCount >= 2)
+            {
+                _logger.LogInformation(
+                    "Submission {SubmissionId} has {Count} assessments. GradeStatus will not be auto-updated (requires manual review).", 
+                    submission.Id, totalAssessmentsCount);
+            }
+        }
+        
         await _unitOfWork.SaveChangesAsync();
 
         _logger.LogInformation(
