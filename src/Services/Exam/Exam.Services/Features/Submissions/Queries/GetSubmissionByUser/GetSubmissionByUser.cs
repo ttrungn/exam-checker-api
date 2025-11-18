@@ -86,15 +86,18 @@ public class GetSubmissionByUserHandler
 
             var query = repository.Query()
                 .Include(s => s.ExamSubject)
-                    .ThenInclude(es => es.Exam)
+                    .ThenInclude(es => es!.Exam)
                 .Include(s => s.ExamSubject)
-                    .ThenInclude(es => es.Subject)
+                    .ThenInclude(es => es!.Subject)
                 .Include(s => s.Assessments)
                 .AsNoTracking();
 
+
             if (request.Role == UserRole.Examiner)
             {
-                query = query.Where(s => s.ExaminerId == request.UserId);
+                query = query.Where(s => 
+                    s.ExaminerId == request.UserId || 
+                    s.Assessments.Any(a => a.ExaminerId == request.UserId));
             }
             else if (request.Role == UserRole.Moderator)
             {

@@ -12,9 +12,11 @@ public class SubmissionUserItemDto
     public string? SubjectIdCode { get; set; }
 
     public DateTimeOffset AssignAt { get; set; }
+    
     public SubmissionStatus Status { get; set; }
+    public GradeStatus GradeStatus { get; set; }
     public string? FileUrl { get; set; }
-
+    
     public Guid? AssessmentId { get; set; }
     public string? SubmissionName { get; set; }
     public AssessmentStatus? AssessmentStatus { get; set; }

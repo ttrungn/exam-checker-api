@@ -94,7 +94,7 @@ public class GetAssessmentDetailQueryHandler
                 }).ToList()
             };
         }
-        // LẦN ĐẦU VÀO: Pending -> InReview
+        // lần get đầu: Pending -> InReview
         if (assessment.Status == AssessmentStatus.Pending)
         {
             assessment.Status = AssessmentStatus.InReview;

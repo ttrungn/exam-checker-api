@@ -20,6 +20,10 @@ public class SubmissionConfiguration : IEntityTypeConfiguration<Submission>
             .HasConversion<string>()
             .HasDefaultValue(SubmissionStatus.Processing);
         
+        builder.Property(x => x.GradeStatus)
+            .HasConversion<string>()
+            .HasDefaultValue(GradeStatus.NotGraded);
+        
         builder.HasOne(x => x.ExamSubject)
             .WithMany(es => es.Submissions)
             .HasForeignKey(x => x.ExamSubjectId)

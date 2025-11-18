@@ -19,10 +19,10 @@ public record GetSubmissionsQuery : IRequest<DataServiceResponse<GetSubmissionsD
     public string? ExamCode { get; init; }
     public string? SubjectCode { get; init; }
     public SubmissionStatus? Status { get; init; }
+    public GradeStatus? GradeStatus { get; init; }
     public string? ExaminerName { get; init; }
     public string? ModeratorName { get; init; }
     public string? SubmissionName { get; init; }
-    public AssessmentStatus? AssessmentStatus { get; init; }
 }
 
 public class GetSubmissionsQueryValidator : AbstractValidator<GetSubmissionsQuery>
@@ -63,22 +63,22 @@ public class GetSubmissionsHandler
         CancellationToken ct)
     {
         _logger.LogInformation(
-            "GetSubmissions invoked. ExamCode={ExamCode}, SubjectCode={SubjectCode}, Status={Status}, ExaminerName={ExaminerName}, ModeratorName={ModeratorName}, SubmissionName={SubmissionName}, AssessmentStatus={AssessmentStatus}, Page=({IndexFrom},{PageIndex},{PageSize})",
+            "GetSubmissions invoked. ExamCode={ExamCode}, SubjectCode={SubjectCode}, Status={Status}, ExaminerName={ExaminerName}, ModeratorName={ModeratorName}, SubmissionName={SubmissionName}, AssessmentStatus={GradeStatus}, Page=({IndexFrom},{PageIndex},{PageSize})",
             request.ExamCode,
             request.SubjectCode,
             request.Status,
             request.ExaminerName,
             request.ModeratorName,
             request.SubmissionName,
-            request.AssessmentStatus,
+            request.GradeStatus,
             request.IndexFrom,
             request.PageIndex,
             request.PageSize);
 
-        try
+         try
         {
             var repository = _unitOfWork.GetRepository<Exam.Domain.Entities.Submission>();
-
+            
             var query = repository.Query()
                 .Include(s => s.ExamSubject)
                     .ThenInclude(es => es.Exam)
@@ -87,17 +87,17 @@ public class GetSubmissionsHandler
                 .Include(s => s.Assessments)
                 .AsNoTracking();
 
-            // Filter by ExamCode
+            // Filter by ExamCode 
             if (!string.IsNullOrWhiteSpace(request.ExamCode))
             {
-                query = query.Where(s => s.ExamSubject != null &&
+                query = query.Where(s => s.ExamSubject != null && 
                     s.ExamSubject.Exam != null && s.ExamSubject.Exam.Code.Contains(request.ExamCode));
             }
 
             // Filter by SubjectCode
             if (!string.IsNullOrWhiteSpace(request.SubjectCode))
             {
-                query = query.Where(s => s.ExamSubject != null &&
+                query = query.Where(s => s.ExamSubject != null && 
                     s.ExamSubject.Subject != null && s.ExamSubject.Subject.Code.Contains(request.SubjectCode));
             }
 
@@ -110,16 +110,14 @@ public class GetSubmissionsHandler
             // Filter by SubmissionName (search in Assessments)
             if (!string.IsNullOrWhiteSpace(request.SubmissionName))
             {
-                query = query.Where(s => s.Assessments.Any(a =>
+                query = query.Where(s => s.Assessments.Any(a => 
                     a.SubmissionName != null && a.SubmissionName.Contains(request.SubmissionName)));
             }
-
-            // Filter by AssessmentStatus
-            if (request.AssessmentStatus.HasValue)
+            // Filter by GradeStatus
+            if (request.GradeStatus.HasValue)
             {
-                query = query.Where(s => s.Assessments.Any(a => a.Status == request.AssessmentStatus.Value));
+                query = query.Where(s => s.GradeStatus == request.GradeStatus.Value);
             }
-
             // Filter by ExaminerEmail
             if (!string.IsNullOrWhiteSpace(request.ExaminerName))
             {
@@ -149,7 +147,6 @@ public class GetSubmissionsHandler
                     _logger.LogWarning(ex, "Failed to search examiner by name: {ExaminerName}", request.ExaminerName);
                 }
             }
-
             // Filter by ModeratorName (search by email in Azure AD)
             if (!string.IsNullOrWhiteSpace(request.ModeratorName))
             {

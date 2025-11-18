@@ -255,6 +255,7 @@ public class SubmissionService : ISubmissionService
                         ExamSubjectId = examSubjectId,
                         AssignAt      = DateTimeOffset.UtcNow,
                         Status        = SubmissionStatus.Processing,
+                        GradeStatus   = GradeStatus.NotGraded,
                         FileUrl       = sasUrl
                     };
 
