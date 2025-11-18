@@ -13,7 +13,7 @@
 
   <ItemGroup>
     <Folder Include="Features\Exams\" />
-    <Folder Include="Features\Submission\Queries\" />
+    <Folder Include="Features\Submissions\Queries\" />
   </ItemGroup>
 
   <ItemGroup>

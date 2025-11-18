@@ -1,6 +1,7 @@
-﻿using Exam.Domain.Enums;
+﻿using System.Text.Json.Serialization;
+using Exam.Domain.Enums;
 
-namespace Exam.Services.Features.Submission.Queries.GetSubmissions;
+namespace Exam.Services.Features.Submissions.Queries.GetSubmissions;
 
 public class SubmissionItemDto
 {
@@ -17,7 +18,10 @@ public class SubmissionItemDto
     public string? ModeratorEmail { get; set; }
 
     public DateTimeOffset AssignAt { get; set; }
+    
     public SubmissionStatus Status { get; set; }
+    public GradeStatus GradeStatus { get; set; }
+    
     public string? FileUrl { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
@@ -29,9 +33,12 @@ public class SubmissionItemDto
 public class AssessmentSummary
 {
     public Guid Id { get; set; }
-    
+    public Guid ExaminerId { get; set; }
+    public string? ExaminerEmail { get; set; }
     public string SubmissionName { get; set; } = null!;
+    
     public AssessmentStatus Status { get; set; }
+    
     public decimal? Score { get; set; }
     public DateTimeOffset? GradedAt { get; set; }
 }

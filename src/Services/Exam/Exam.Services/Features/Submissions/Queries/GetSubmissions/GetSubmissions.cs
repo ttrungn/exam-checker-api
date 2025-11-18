@@ -9,7 +9,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Microsoft.Graph;
 
-namespace Exam.Services.Features.Submission.Queries.GetSubmissions;
+namespace Exam.Services.Features.Submissions.Queries.GetSubmissions;
 
 public record GetSubmissionsQuery : IRequest<DataServiceResponse<GetSubmissionsDto>>
 {
@@ -19,10 +19,10 @@ public record GetSubmissionsQuery : IRequest<DataServiceResponse<GetSubmissionsD
     public string? ExamCode { get; init; }
     public string? SubjectCode { get; init; }
     public SubmissionStatus? Status { get; init; }
+    public GradeStatus? GradeStatus { get; init; }
     public string? ExaminerName { get; init; }
     public string? ModeratorName { get; init; }
     public string? SubmissionName { get; init; }
-    public AssessmentStatus? AssessmentStatus { get; init; }
 }
 
 public class GetSubmissionsQueryValidator : AbstractValidator<GetSubmissionsQuery>
@@ -63,19 +63,19 @@ public class GetSubmissionsHandler
         CancellationToken ct)
     {
         _logger.LogInformation(
-            "GetSubmissions invoked. ExamCode={ExamCode}, SubjectCode={SubjectCode}, Status={Status}, ExaminerName={ExaminerName}, ModeratorName={ModeratorName}, SubmissionName={SubmissionName}, AssessmentStatus={AssessmentStatus}, Page=({IndexFrom},{PageIndex},{PageSize})",
+            "GetSubmissions invoked. ExamCode={ExamCode}, SubjectCode={SubjectCode}, Status={Status}, ExaminerName={ExaminerName}, ModeratorName={ModeratorName}, SubmissionName={SubmissionName}, AssessmentStatus={GradeStatus}, Page=({IndexFrom},{PageIndex},{PageSize})",
             request.ExamCode,
             request.SubjectCode,
             request.Status,
             request.ExaminerName,
             request.ModeratorName,
             request.SubmissionName,
-            request.AssessmentStatus,
+            request.GradeStatus,
             request.IndexFrom,
             request.PageIndex,
             request.PageSize);
 
-        try
+         try
         {
             var repository = _unitOfWork.GetRepository<Exam.Domain.Entities.Submission>();
             
@@ -113,13 +113,11 @@ public class GetSubmissionsHandler
                 query = query.Where(s => s.Assessments.Any(a => 
                     a.SubmissionName != null && a.SubmissionName.Contains(request.SubmissionName)));
             }
-
-            // Filter by AssessmentStatus
-            if (request.AssessmentStatus.HasValue)
+            // Filter by GradeStatus
+            if (request.GradeStatus.HasValue)
             {
-                query = query.Where(s => s.Assessments.Any(a => a.Status == request.AssessmentStatus.Value));
+                query = query.Where(s => s.GradeStatus == request.GradeStatus.Value);
             }
-
             // Filter by ExaminerEmail
             if (!string.IsNullOrWhiteSpace(request.ExaminerName))
             {
@@ -149,7 +147,6 @@ public class GetSubmissionsHandler
                     _logger.LogWarning(ex, "Failed to search examiner by name: {ExaminerName}", request.ExaminerName);
                 }
             }
-            
             // Filter by ModeratorName (search by email in Azure AD)
             if (!string.IsNullOrWhiteSpace(request.ModeratorName))
             {
@@ -179,13 +176,13 @@ public class GetSubmissionsHandler
                     _logger.LogWarning(ex, "Failed to search moderator by name: {ModeratorName}", request.ModeratorName);
                 }
             }
-            
+
             // Order by CreatedAt descending
             query = query.OrderByDescending(s => s.CreatedAt);
-            
+
             // Get total count BEFORE pagination
             var totalCount = await query.CountAsync(ct);
-            
+
             // Get submissions for current page
             var submissions = await query
                 .Skip((request.PageIndex - request.IndexFrom) * request.PageSize)
@@ -246,10 +243,10 @@ public class GetSubmissionsHandler
 
             // Tính toán pagination metadata
             var totalPages = (int)Math.Ceiling(totalCount / (double)request.PageSize);
-            
+
             // Tạo pagedSubmissions với constructor
             var pagedSubmissions = new GetSubmissionsDto(submissions, request.PageIndex, request.PageSize, request.IndexFrom);
-            
+
             // Override lại các giá trị pagination đã tính từ database
             pagedSubmissions.TotalCount = totalCount;
             pagedSubmissions.TotalPages = totalPages;

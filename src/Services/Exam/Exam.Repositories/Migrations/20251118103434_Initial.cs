@@ -117,6 +117,7 @@ namespace Exam.Repositories.Migrations
                     ModeratorId = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
                     AssignAt = table.Column<DateTimeOffset>(type: "datetimeoffset", nullable: false),
                     Status = table.Column<string>(type: "nvarchar(max)", nullable: false, defaultValue: "Processing"),
+                    GradeStatus = table.Column<string>(type: "nvarchar(max)", nullable: false, defaultValue: "NotGraded"),
                     FileUrl = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false, defaultValueSql: "GETUTCDATE()"),
                     UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: false, defaultValueSql: "GETUTCDATE()"),

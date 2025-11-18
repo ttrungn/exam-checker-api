@@ -1,6 +1,6 @@
 ﻿using Exam.Domain.Enums;
 
-namespace Exam.Services.Features.Submission.Queries.GetSubmissionByUser;
+namespace Exam.Services.Features.Submissions.Queries.GetSubmissionByUser;
 
 public class SubmissionUserItemDto
 {
@@ -12,7 +12,9 @@ public class SubmissionUserItemDto
     public string? SubjectIdCode { get; set; }
 
     public DateTimeOffset AssignAt { get; set; }
+    
     public SubmissionStatus Status { get; set; }
+    public GradeStatus GradeStatus { get; set; }
     public string? FileUrl { get; set; }
     
     public Guid? AssessmentId { get; set; }

@@ -23,7 +23,7 @@ public class GetSemestersQueryValidator : AbstractValidator<GetSemestersQuery>
             .GreaterThanOrEqualTo(0).WithMessage("Vui lòng nhập số trang lớn hơn hoặc 0!");
 
         RuleFor(x => x.PageSize)
-            .GreaterThan(0).WithMessage("Vui lòng nhập kỳ lớn hơn 0!");
+            .GreaterThan(0).WithMessage("Vui lòng nhập số lượng lớn hơn 0!");
     }
 }
 
@@ -41,7 +41,7 @@ public class GetSemestersQueryHandler : IRequestHandler<GetSemestersQuery, BaseS
     public async Task<BaseServiceResponse> Handle(GetSemestersQuery request, CancellationToken cancellationToken)
     {
         var response = await _semesterService.GetSemestersAsync(request, cancellationToken);
-        if (response.Success  && response is PaginationServiceResponse<SemesterResponse> paginationResponse)
+        if (response.Success && response is PaginationServiceResponse<SemesterResponse> paginationResponse)
         {
             _logger.LogInformation("Semesters retrieved successfully!");
             return paginationResponse;

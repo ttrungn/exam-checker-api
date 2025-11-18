@@ -3,7 +3,7 @@ using FluentValidation;
 using MediatR;
 using Microsoft.AspNetCore.Http;
 
-namespace Exam.Services.Features.Submission.Commands.CreateSubmissionsFromZipCommand ;
+namespace Exam.Services.Features.Submissions.Commands.CreateSubmissionsFromZipCommand ;
 
 public record CreateSubmissionsFromZipCommand  : IRequest<DataServiceResponse<List<Guid>>>
 {

@@ -1,6 +1,6 @@
 ﻿using Exam.Repositories.Interfaces.Repositories;
 using Exam.Services.Exceptions;
-using Exam.Services.Features.Submission.Queries.GetSubmissions;
+using Exam.Services.Features.Submissions.Queries.GetSubmissions;
 using Exam.Services.Mappers;
 using Exam.Services.Models.Responses;
 using MediatR;
@@ -8,7 +8,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Microsoft.Graph;
 
-namespace Exam.Services.Features.Submission.Queries.GetSubmissionById;
+namespace Exam.Services.Features.Submissions.Queries.GetSubmissionById;
 
 public record GetSubmissionByIdQuery : IRequest<DataServiceResponse<SubmissionItemDto>>
 {
@@ -47,6 +47,7 @@ public class GetSubmissionByIdHandler
                     .ThenInclude(es => es!.Exam)
                 .Include(s => s.ExamSubject)
                     .ThenInclude(es => es!.Subject)
+                .Include(s => s.Assessments)
                 .AsNoTracking()
                 .FirstOrDefaultAsync(s => s.Id == request.Id, ct);
 
@@ -102,7 +103,48 @@ public class GetSubmissionByIdHandler
                     _logger.LogWarning(ex, "Failed to fetch moderator info for ID={ModeratorId}", submission.ModeratorId);
                 }
             }
+            // Fetch Examiner emails for each Assessment
+            if (dto.Assessments.Any())
+            {
+                var examinerIds = dto.Assessments
+                    .Select(a => a.ExaminerId)
+                    .Where(id => id != Guid.Empty)
+                    .Distinct()
+                    .ToList();
 
+                var examinerEmailCache = new Dictionary<Guid, string>();
+
+                foreach (var examinerId in examinerIds)
+                {
+                    try
+                    {
+                        var examiner = await _graphClient.Users[examinerId.ToString()]
+                            .GetAsync(r =>
+                            {
+                                r.QueryParameters.Select = ["id", "mail", "userPrincipalName"];
+                            }, ct);
+
+                        if (examiner != null)
+                        {
+                            examinerEmailCache[examinerId] = examiner.Mail ?? examiner.UserPrincipalName ?? "";
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogWarning(ex, "Failed to fetch examiner info for Assessment ExaminerId={ExaminerId}", examinerId);
+                        examinerEmailCache[examinerId] = "";
+                    }
+                }
+
+                // Map emails to assessments
+                foreach (var assessment in dto.Assessments)
+                {
+                    if (assessment.ExaminerId != Guid.Empty && examinerEmailCache.ContainsKey(assessment.ExaminerId))
+                    {
+                        assessment.ExaminerEmail = examinerEmailCache[assessment.ExaminerId];
+                    }
+                }
+            }
             return new DataServiceResponse<SubmissionItemDto>
             {
                 Success = true,
