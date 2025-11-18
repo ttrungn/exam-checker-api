@@ -9,7 +9,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Microsoft.Graph;
 
-namespace Exam.Services.Features.Submission.Queries.GetSubmissions;
+namespace Exam.Services.Features.Submissions.Queries.GetSubmissions;
 
 public record GetSubmissionsQuery : IRequest<DataServiceResponse<GetSubmissionsDto>>
 {
@@ -78,7 +78,7 @@ public class GetSubmissionsHandler
         try
         {
             var repository = _unitOfWork.GetRepository<Exam.Domain.Entities.Submission>();
-            
+
             var query = repository.Query()
                 .Include(s => s.ExamSubject)
                     .ThenInclude(es => es.Exam)
@@ -87,17 +87,17 @@ public class GetSubmissionsHandler
                 .Include(s => s.Assessments)
                 .AsNoTracking();
 
-            // Filter by ExamCode 
+            // Filter by ExamCode
             if (!string.IsNullOrWhiteSpace(request.ExamCode))
             {
-                query = query.Where(s => s.ExamSubject != null && 
+                query = query.Where(s => s.ExamSubject != null &&
                     s.ExamSubject.Exam != null && s.ExamSubject.Exam.Code.Contains(request.ExamCode));
             }
 
             // Filter by SubjectCode
             if (!string.IsNullOrWhiteSpace(request.SubjectCode))
             {
-                query = query.Where(s => s.ExamSubject != null && 
+                query = query.Where(s => s.ExamSubject != null &&
                     s.ExamSubject.Subject != null && s.ExamSubject.Subject.Code.Contains(request.SubjectCode));
             }
 
@@ -110,7 +110,7 @@ public class GetSubmissionsHandler
             // Filter by SubmissionName (search in Assessments)
             if (!string.IsNullOrWhiteSpace(request.SubmissionName))
             {
-                query = query.Where(s => s.Assessments.Any(a => 
+                query = query.Where(s => s.Assessments.Any(a =>
                     a.SubmissionName != null && a.SubmissionName.Contains(request.SubmissionName)));
             }
 
@@ -149,7 +149,7 @@ public class GetSubmissionsHandler
                     _logger.LogWarning(ex, "Failed to search examiner by name: {ExaminerName}", request.ExaminerName);
                 }
             }
-            
+
             // Filter by ModeratorName (search by email in Azure AD)
             if (!string.IsNullOrWhiteSpace(request.ModeratorName))
             {
@@ -179,13 +179,13 @@ public class GetSubmissionsHandler
                     _logger.LogWarning(ex, "Failed to search moderator by name: {ModeratorName}", request.ModeratorName);
                 }
             }
-            
+
             // Order by CreatedAt descending
             query = query.OrderByDescending(s => s.CreatedAt);
-            
+
             // Get total count BEFORE pagination
             var totalCount = await query.CountAsync(ct);
-            
+
             // Get submissions for current page
             var submissions = await query
                 .Skip((request.PageIndex - request.IndexFrom) * request.PageSize)
@@ -246,10 +246,10 @@ public class GetSubmissionsHandler
 
             // Tính toán pagination metadata
             var totalPages = (int)Math.Ceiling(totalCount / (double)request.PageSize);
-            
+
             // Tạo pagedSubmissions với constructor
             var pagedSubmissions = new GetSubmissionsDto(submissions, request.PageIndex, request.PageSize, request.IndexFrom);
-            
+
             // Override lại các giá trị pagination đã tính từ database
             pagedSubmissions.TotalCount = totalCount;
             pagedSubmissions.TotalPages = totalPages;
