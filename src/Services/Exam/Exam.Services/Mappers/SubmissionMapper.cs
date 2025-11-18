@@ -1,6 +1,6 @@
 ﻿using Exam.Domain.Entities;
-using Exam.Services.Features.Submission.Queries.GetSubmissionByUser;
-using Exam.Services.Features.Submission.Queries.GetSubmissions;
+using Exam.Services.Features.Submissions.Queries.GetSubmissionByUser;
+using Exam.Services.Features.Submissions.Queries.GetSubmissions;
 
 namespace Exam.Services.Mappers;
 

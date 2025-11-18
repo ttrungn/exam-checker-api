@@ -1,6 +1,5 @@
-﻿
-using Exam.Services.Features.Submission.Commands.CreateSubmissionsFromZipCommand;
-using Exam.Services.Features.Submission.Commands.UploadSubmissionFromZipCommand;
+﻿using Exam.Services.Features.Submissions.Commands.CreateSubmissionsFromZipCommand;
+using Exam.Services.Features.Submissions.Commands.UploadSubmissionFromZipCommand;
 using Exam.Services.Models.Responses;
 
 namespace Exam.Services.Interfaces.Services;

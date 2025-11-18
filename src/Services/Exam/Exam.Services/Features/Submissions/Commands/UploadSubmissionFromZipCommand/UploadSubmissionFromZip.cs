@@ -5,7 +5,7 @@ using MediatR;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 
-namespace Exam.Services.Features.Submission.Commands.UploadSubmissionFromZipCommand;
+namespace Exam.Services.Features.Submissions.Commands.UploadSubmissionFromZipCommand;
 
 
 
@@ -37,13 +37,13 @@ public class UploadSubmissionFromZipCommandHandler : IRequestHandler<UploadSubmi
 {
     private readonly ISubmissionService _service;
     private readonly ILogger<UploadSubmissionFromZipCommandHandler> _logger;
-    
+
     public UploadSubmissionFromZipCommandHandler(ISubmissionService service, ILogger<UploadSubmissionFromZipCommandHandler> logger)
     {
         _service = service;
         _logger = logger;
     }
-    
+
     public async Task<DataServiceResponse<List<Guid>>> Handle(UploadSubmissionFromZipCommand  request, CancellationToken cancellationToken)
     {
         var uploadResult = await _service.UploadZipForProcessingAsync(request, cancellationToken);
@@ -55,7 +55,7 @@ public class UploadSubmissionFromZipCommandHandler : IRequestHandler<UploadSubmi
                 Message = uploadResult.Message
             };
         }
-        
+
         return new()
         {
             Success = true,

@@ -1,6 +1,6 @@
 ﻿using Exam.Domain.Enums;
 
-namespace Exam.Services.Features.Submission.Queries.GetSubmissions;
+namespace Exam.Services.Features.Submissions.Queries.GetSubmissions;
 
 public class SubmissionItemDto
 {
@@ -22,14 +22,14 @@ public class SubmissionItemDto
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
     public bool IsActive { get; set; }
-    
+
     public List<AssessmentSummary> Assessments { get; set; } = new();
 }
 
 public class AssessmentSummary
 {
     public Guid Id { get; set; }
-    
+
     public string SubmissionName { get; set; } = null!;
     public AssessmentStatus Status { get; set; }
     public decimal? Score { get; set; }

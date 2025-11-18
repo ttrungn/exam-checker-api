@@ -8,7 +8,7 @@ using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
-namespace Exam.Services.Features.Submission.Queries.GetSubmissionByUser;
+namespace Exam.Services.Features.Submissions.Queries.GetSubmissionByUser;
 
 public record GetSubmissionByUserQuery : IRequest<DataServiceResponse<GetSubmissionsByUserDto>>
 {
@@ -36,7 +36,7 @@ public class GetSubmissionByUserValidator : AbstractValidator<GetSubmissionByUse
     {
         RuleFor(x => x.UserId)
             .NotEmpty().WithMessage("UserId is required.");
-        
+
         RuleFor(x => x.IndexFrom)
             .GreaterThanOrEqualTo(0).WithMessage("IndexFrom must be at least 0.");
 
@@ -83,7 +83,7 @@ public class GetSubmissionByUserHandler
         try
         {
             var repository = _unitOfWork.GetRepository<Exam.Domain.Entities.Submission>();
-            
+
             var query = repository.Query()
                 .Include(s => s.ExamSubject)
                     .ThenInclude(es => es.Exam)
@@ -91,7 +91,7 @@ public class GetSubmissionByUserHandler
                     .ThenInclude(es => es.Subject)
                 .Include(s => s.Assessments)
                 .AsNoTracking();
-            
+
             if (request.Role == UserRole.Examiner)
             {
                 query = query.Where(s => s.ExaminerId == request.UserId);
@@ -100,56 +100,56 @@ public class GetSubmissionByUserHandler
             {
                 query = query.Where(s => s.ModeratorId == request.UserId);
             }
-            
+
             if (!string.IsNullOrWhiteSpace(request.ExamCode))
             {
                 query = query.Where(s => s.ExamSubject != null && s.ExamSubject.Exam.Code.Contains(request.ExamCode));
             }
-            
+
             if (!string.IsNullOrWhiteSpace(request.SubjectCode))
             {
                 query = query.Where(s => s.ExamSubject != null && s.ExamSubject.Subject.Code.Contains(request.SubjectCode));
             }
-            
+
             if (request.Status.HasValue)
             {
                 query = query.Where(s => s.Status == request.Status.Value);
             }
-            
+
             // Filter by SubmissionName (search in Assessments)
             if (!string.IsNullOrWhiteSpace(request.SubmissionName))
             {
-                query = query.Where(s => s.Assessments.Any(a => 
+                query = query.Where(s => s.Assessments.Any(a =>
                     a.SubmissionName != null && a.SubmissionName.Contains(request.SubmissionName)));
             }
-            
+
             // Filter by AssessmentStatus
             if (request.AssessmentStatus.HasValue)
             {
                 query = query.Where(s => s.Assessments.Any(a => a.Status == request.AssessmentStatus.Value));
             }
-            
+
             query = query.OrderByDescending(s => s.CreatedAt);
-            
+
             var totalCount = query.Count();
-            
+
             var submissions = await query
                 .Skip((request.PageIndex - request.IndexFrom) * request.PageSize)
                 .Take(request.PageSize)
                 .Select(s => s.ToUserSubmissionDto(request.UserId))
                 .ToListAsync(ct);
-            
+
             var totalPages = (int)Math.Ceiling(totalCount / (double)request.PageSize);
-            
+
             var pagedSubmissions = new GetSubmissionsByUserDto(submissions, request.PageIndex, request.PageSize, request.IndexFrom);
-            
+
             // Override lại các giá trị pagination đã tính từ database
             pagedSubmissions.TotalCount = totalCount;
             pagedSubmissions.TotalPages = totalPages;
 
             _logger.LogInformation(
-                "GetSubmissionByUser success: Retrieved {Count} submissions out of {Total} for UserId={UserId}, Role={Role}", 
-                submissions.Count, 
+                "GetSubmissionByUser success: Retrieved {Count} submissions out of {Total} for UserId={UserId}, Role={Role}",
+                submissions.Count,
                 totalCount,
                 request.UserId,
                 request.Role);

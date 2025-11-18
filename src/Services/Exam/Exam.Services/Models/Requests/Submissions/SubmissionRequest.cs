@@ -1,5 +1,5 @@
 ﻿using Exam.Domain.Enums;
-using Exam.Services.Features.Submission.Queries.GetSubmissionByUser;
+using Exam.Services.Features.Submissions.Queries.GetSubmissionByUser;
 
 namespace Exam.Services.Models.Requests.Submissions;
 

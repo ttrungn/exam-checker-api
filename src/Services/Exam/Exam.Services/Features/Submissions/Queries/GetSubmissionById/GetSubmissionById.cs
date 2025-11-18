@@ -1,6 +1,6 @@
 ﻿using Exam.Repositories.Interfaces.Repositories;
 using Exam.Services.Exceptions;
-using Exam.Services.Features.Submission.Queries.GetSubmissions;
+using Exam.Services.Features.Submissions.Queries.GetSubmissions;
 using Exam.Services.Mappers;
 using Exam.Services.Models.Responses;
 using MediatR;
@@ -8,7 +8,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Microsoft.Graph;
 
-namespace Exam.Services.Features.Submission.Queries.GetSubmissionById;
+namespace Exam.Services.Features.Submissions.Queries.GetSubmissionById;
 
 public record GetSubmissionByIdQuery : IRequest<DataServiceResponse<SubmissionItemDto>>
 {
