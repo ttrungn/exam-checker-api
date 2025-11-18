@@ -7,7 +7,7 @@ namespace Exam.API.Controllers.v1;
 
 [ApiVersion(1)]
 [ApiController]
-[Route("api/v{v:apiVersion}/violations")]
+[Route("api/v{v:apiVersion}/[controller]")]
 public class ViolationController : ControllerBase
 {
     private readonly ISender _sender;
@@ -23,10 +23,13 @@ public class ViolationController : ControllerBase
         CancellationToken cancellationToken = default)
     {
         var result = await _sender.Send(command, cancellationToken);
-        if (result.Success)
+        if (!result.Success)
         {
             return TypedResults.Ok(result);
         }
-        return TypedResults.BadRequest(result);
+        return TypedResults.Ok(result);
+
     }
+
+  
 }
