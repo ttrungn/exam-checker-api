@@ -3,12 +3,14 @@ using Exam.API.Mappers;
 using Exam.Services.Features.ExamSubjects.Commands;
 using Exam.Services.Models.Requests.ExamSubjects;
 using Exam.Services.Models.Responses;
+using Exam.Services.Models.Responses.ExamSubjects;
 using Exam.Services.Models.ScoreStructureJson.ExamSubjects;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
 using Exam.Services.Models.Validations;
-using Exam.Services.Models.Responses;
 using Exam.Services.Features.ExamSubjects.Commands.UpdateViolationStructure;
+using Exam.Services.Features.ExamSubjects.Queries.GetExamSubjectById;
+using Exam.Services.Features.ExamSubjects.Queries.GetExamSubjects;
 
 namespace Exam.API.Controllers.v1;
 
@@ -64,5 +66,36 @@ public class ExamSubjectsController : ControllerBase
 
         return TypedResults.BadRequest(result.ToBaseApiResponse());
     }
+
+    [HttpGet]
+    public async Task<IResult> GetExamSubjectsAsync(
+        [FromQuery] GetExamSubjectsQuery request,
+        CancellationToken token = default)
+    {
+        var result = await _sender.Send(request, token);
+
+        if (result.Success && result is PaginationServiceResponse<ExamSubjectResponse> paginationResponse)
+        {
+            return TypedResults.Ok(paginationResponse.ToPaginationApiResponse());
+        }
+        return TypedResults.BadRequest(result.ToBaseApiResponse());
+    }
+
+    [HttpGet("{examSubjectId:guid}")]
+    public async Task<IResult> GetExamSubjectByIdAsync(
+        [FromRoute] Guid examSubjectId,
+        CancellationToken token = default
+    )
+    {
+        var query = new GetExamSubjectByIdWithViolationStructureQuery(examSubjectId);
+        var result = await _sender.Send(query, token);
+
+        if (result.Success && result is DataServiceResponse<ExamSubjectResponse> dataResponse)
+        {
+            return TypedResults.Ok(dataResponse.ToDataApiResponse());
+        }
+        return TypedResults.BadRequest(result.ToBaseApiResponse());
+    }
     
+
 }
