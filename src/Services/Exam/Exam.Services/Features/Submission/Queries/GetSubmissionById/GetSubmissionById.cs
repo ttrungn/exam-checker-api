@@ -57,7 +57,7 @@ public class GetSubmissionByIdHandler
             }
 
             // Use mapper to convert entity to DTO
-            var dto = submission.ToSubmissionItemDto();
+            var dto = submission.ToManagerSubmissionDto();
 
             // Fetch Examiner email from Microsoft Graph
             if (submission.ExaminerId.HasValue && submission.ExaminerId.Value != Guid.Empty)

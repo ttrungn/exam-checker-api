@@ -23,13 +23,10 @@ public class ViolationController : ControllerBase
         CancellationToken cancellationToken = default)
     {
         var result = await _sender.Send(command, cancellationToken);
-        if (!result.Success)
+        if (result.Success)
         {
             return TypedResults.Ok(result);
         }
-        return TypedResults.Ok(result);
-
+        return TypedResults.BadRequest(result);
     }
-
-  
 }

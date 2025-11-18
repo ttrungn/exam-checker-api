@@ -1,5 +1,9 @@
 ﻿using Asp.Versioning;
 using Exam.API.Mappers;
+using Exam.Services.Features.ExamSubjects.Commands;
+using Exam.Services.Models.Requests.ExamSubjects;
+using Exam.Services.Models.Responses;
+using Exam.Services.Models.ScoreStructureJson.ExamSubjects;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
 using Exam.Services.Models.Validations;
@@ -39,6 +43,26 @@ public class ExamSubjectsController : ControllerBase
 
         return TypedResults.BadRequest(result.ToBaseApiResponse());
     }
-    
+    [HttpPost("{id:guid}/score-structure/import")]
+    public async Task<IResult> ImportScoreStructureAsync(
+        [FromRoute] Guid id,
+        [FromForm] ImportScoreStructureRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        var command = new ImportScoreStructureFromExcelCommand
+        {
+            ExamSubjectId = id,
+            File = request.File
+        };
+
+        var result = await _sender.Send(command, cancellationToken);
+
+        if (result.Success && result is DataServiceResponse<ScoreStructure> dataResponse)
+        {
+            return TypedResults.Ok(dataResponse.ToDataApiResponse());
+        }
+
+        return TypedResults.BadRequest(result.ToBaseApiResponse());
+    }
     
 }
