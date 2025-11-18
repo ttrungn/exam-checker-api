@@ -23,10 +23,11 @@ public static class DependencyInjection
         // Register Service
         builder.Services.AddScoped<ISemesterService, SemesterService>();
         builder.Services.AddScoped<IAzureBlobService, AzureBlobService>();
+        builder.Services.AddScoped<IAzureQueueService, AzureQueueService>();
         builder.Services.AddScoped<IViolationService, ViolationService>();
         builder.Services.AddScoped<ISubmissionService, SubmissionService>();
         builder.Services.AddScoped<IGraphClientService, GraphClientService>();
-    
+        builder.Services.AddScoped<IExamSubjectService, ExamSubjectService>();  
 
         builder.Services.AddMediatR(cfg =>
         {
@@ -58,6 +59,5 @@ public static class DependencyInjection
         builder.Services.AddSingleton(Microsoft.Extensions.Options.Options.Create(queueStorageSettings));
         
         builder.Services.AddSingleton(new QueueServiceClient(queueConnectionString));
-        builder.Services.AddScoped<IAzureQueueService, AzureQueueService>();
     }
 }
