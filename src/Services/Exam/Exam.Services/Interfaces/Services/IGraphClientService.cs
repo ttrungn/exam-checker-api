@@ -48,4 +48,16 @@ public interface IGraphClientService
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>List of DirectoryRole objects assigned to the user</returns>
     Task<List<DirectoryRole>> GetUserDirectoryRolesAsync(Guid userId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    ///     Gets app role assignments for a specific user for a specific application
+    /// </summary>
+    /// <param name="userId">The user ID</param>
+    /// <param name="clientId">The Azure AD client ID</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>List of AppRole objects assigned to the user for the application</returns>
+    Task<List<AppRole>> GetUserAppRolesForApplicationAsync(
+        Guid userId,
+        string clientId,
+        CancellationToken cancellationToken = default);
 }
