@@ -71,10 +71,15 @@ public class GetDashboardSummaryHandler
                 NotGraded = x.SelectMany(s => s.Submissions).Count(s => s.GradeStatus == GradeStatus.NotGraded),
                 Violated = x.SelectMany(s => s.Submissions).Count(s =>
                     s.Status == SubmissionStatus.Violated || s.Status == SubmissionStatus.ModeratorViolated),
+                
+                
                 ProgressPercent =
                     x.SelectMany(s => s.Submissions)
                         .Count(s => s.GradeStatus == GradeStatus.Graded) * 100m /
-                    Math.Max(x.SelectMany(s => s.Submissions).Count(), 1)
+                    (!x.SelectMany(s => s.Submissions).Any()
+                        ? 1 
+                        : x.SelectMany(s => s.Submissions).Count())
+
             });
             
             
