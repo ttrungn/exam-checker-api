@@ -22,10 +22,10 @@ namespace Exam.API.Controllers.v1;
 [Route("api/v{v:apiVersion}/accounts")]
 public class AccountController : ControllerBase
 {
-    private readonly IHubContext<AccountNotificationsHub> _accountNotificationHub;
+    private readonly IHubContext<ExamCheckerNotificationsHub> _accountNotificationHub;
     private readonly ISender _sender;
 
-    public AccountController(ISender sender, IHubContext<AccountNotificationsHub> accountNotificationHub)
+    public AccountController(ISender sender, IHubContext<ExamCheckerNotificationsHub> accountNotificationHub)
     {
         _sender = sender;
         _accountNotificationHub = accountNotificationHub;
@@ -93,6 +93,7 @@ public class AccountController : ControllerBase
         var result = await _sender.Send(request);
         return Ok(result.ToDataApiResponse());
     }
+
     [HttpGet("moderators")]
     [Authorize(Roles = $"{Roles.Admin},{Roles.Manager},{Roles.Moderator}")]
     public async Task<IActionResult> GetModerator([FromQuery] GetModeratorsQuery request)
