@@ -35,7 +35,7 @@ public class ApplicationDbContextInitializer
     {
         try
         {
-            // await _context.Database.EnsureDeletedAsync();
+            await _context.Database.EnsureDeletedAsync();
             await _context.Database.EnsureCreatedAsync();
         }
         catch (Exception ex)

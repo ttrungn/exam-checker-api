@@ -31,7 +31,7 @@ if (app.Environment.IsDevelopment())
         }
     });
 
-    // await app.InitialiseDatabaseAsync();
+    await app.InitialiseDatabaseAsync();
 }
 
 app.UseExceptionHandler();
@@ -44,7 +44,7 @@ app.MapGet("/", context =>
     context.Response.Redirect("/swagger/index.html", false);
     return Task.CompletedTask;
 });
-app.MapHub<AccountNotificationsHub>("/hubs/account-notifications");
+app.MapHub<ExamCheckerNotificationsHub>("/hubs/exam-checker-notifications");
 app.MapControllers();
 
 app.Run();

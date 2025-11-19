@@ -116,7 +116,8 @@ public static class DependencyInjection
                     .AllowCredentials();
             });
         });
-        builder.Services.AddSignalR();
+        builder.Services.AddSignalR()
+            .AddAzureSignalR(builder.Configuration["Azure:SignalRSettings:PrimaryConnectionString"]);
         builder.Services.AddSingleton<IUserIdProvider, OidUserIdProvider>();
     }
 }

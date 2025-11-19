@@ -47,19 +47,31 @@ public class CompilationCheck
             return;
         }
 
-        var uri = new Uri(data.BlobUrl); 
+        _logger.LogInformation("Processing compilation check for SubmissionId: {SubmissionId}, BlobUrl: {BlobUrl}",
+            data.SubmissionId, data.BlobUrl);
+
+        _logger.LogInformation("Processing compilation check for SubmissionId: {SubmissionId}, BlobUrl: {BlobUrl}",
+            data.SubmissionId, data.BlobUrl);
+
+        var uri = new Uri(data.BlobUrl);
         var container = uri.Segments[1].Trim('/');
         var blobPath = string.Join("", uri.Segments.Skip(2));
 
+        _logger.LogInformation("Parsed blob location - Container: {Container}, BlobPath: {BlobPath}", container, blobPath);
+
         // Download blob manually
+        _logger.LogInformation("Downloading blob from container: {Container}, path: {BlobPath}", container, blobPath);
         var containerClient = _blobServiceClient.GetBlobContainerClient(container);
         var blobClient = containerClient.GetBlobClient(blobPath);
         
         var stream = new MemoryStream();
         await blobClient.DownloadToAsync(stream);
         stream.Position = 0;
+        _logger.LogInformation("Blob downloaded successfully. Size: {Size} bytes", stream.Length);
         
+        _logger.LogInformation("Opening outer ZIP archive");
         using var outerZip = new ZipArchive(stream, ZipArchiveMode.Read);
+        _logger.LogInformation("Outer ZIP contains {Count} entries", outerZip.Entries.Count);
 
         var innerZipEntry = outerZip.Entries
         .FirstOrDefault(e => e.FullName.EndsWith("solution.zip",
@@ -68,55 +80,84 @@ public class CompilationCheck
 
         if (innerZipEntry == null)
         {
+            _logger.LogWarning("solution.zip not found in submission for SubmissionId: {SubmissionId}", data.SubmissionId);
             await ReportCompilationResultAsync(data.SubmissionId, false,
                 "solution.zip not found in submission structure.");
             return;
         }
+        
+        _logger.LogInformation("Found solution.zip at path: {Path}", innerZipEntry.FullName);
         using var innerMem = new MemoryStream();
         using (var innerStream = innerZipEntry.Open())
         {
             innerStream.CopyTo(innerMem);
         }
         innerMem.Position = 0;
+        _logger.LogInformation("solution.zip extracted. Size: {Size} bytes", innerMem.Length);
+        
+        _logger.LogInformation("Opening solution.zip");
         using var solutionZip = new ZipArchive(innerMem, ZipArchiveMode.Read);
+        _logger.LogInformation("solution.zip contains {Count} entries", solutionZip.Entries.Count);
+
+        _logger.LogInformation("solution.zip contains {Count} entries", solutionZip.Entries.Count);
 
         // Use shorter path to avoid Windows MAX_PATH (260 chars) limitation
         var workspaceRoot = Path.Combine(Path.GetTempPath(), "ec"); // "ec" = exam checker
         if (!Directory.Exists(workspaceRoot))
+        {
             Directory.CreateDirectory(workspaceRoot);
+            _logger.LogInformation("Created workspace root: {WorkspaceRoot}", workspaceRoot);
+        }
 
         var workspace = Path.Combine(workspaceRoot, data.SubmissionId.ToString("N").Substring(0, 8));
-        if (Directory.Exists(workspace)) Directory.Delete(workspace, true);
+        if (Directory.Exists(workspace))
+        {
+            _logger.LogInformation("Cleaning up existing workspace: {Workspace}", workspace);
+            Directory.Delete(workspace, true);
+        }
         Directory.CreateDirectory(workspace);
+        _logger.LogInformation("Created workspace directory: {Workspace}", workspace);
 
+        _logger.LogInformation("Extracting solution.zip to workspace");
         solutionZip.ExtractToDirectory(workspace);
-
         _logger.LogInformation("solution.zip extracted to {Workspace}", workspace);
 
+        _logger.LogInformation("Searching for .sln file in {Workspace}", workspace);
         var slnFile = Directory.GetFiles(workspace, "*.sln", SearchOption.AllDirectories)
                        .FirstOrDefault();
 
         if (slnFile == null)
         {
+            _logger.LogWarning("No .sln file found in workspace for SubmissionId: {SubmissionId}", data.SubmissionId);
             await ReportCompilationResultAsync(data.SubmissionId, false,
                 "No .sln file found inside solution.zip.");
             return;
         }
+        
+        _logger.LogInformation("Found solution file: {SlnFile}", slnFile);
+        _logger.LogInformation("Starting dotnet build for {SlnFile}", slnFile);
         var buildResult = await RunDotnetBuildAsync(slnFile);
 
         if (!buildResult.Success)
         {
+            _logger.LogWarning("Build failed for SubmissionId: {SubmissionId}. Error: {Error}",
+                data.SubmissionId, buildResult.ErrorMessage);
             await ReportCompilationResultAsync(data.SubmissionId, false,
                 buildResult.ErrorMessage);
             return;
         }
 
+        _logger.LogInformation("Build succeeded for SubmissionId: {SubmissionId}", data.SubmissionId);
         await ReportCompilationResultAsync(data.SubmissionId, true,
-            "Build succeeded � project compiled successfully.");
-        _logger.LogInformation("Build succeeded for {SubmissionId}", data.SubmissionId);
+            "Build succeeded – project compiled successfully.");
 
         // Cleanup workspace
-        try { Directory.Delete(workspace, true); }
+        _logger.LogInformation("Cleaning up workspace: {Workspace}", workspace);
+        try 
+        { 
+            Directory.Delete(workspace, true);
+            _logger.LogInformation("Workspace cleaned up successfully");
+        }
         catch
         {
         }
@@ -125,9 +166,10 @@ public class CompilationCheck
     private async Task<(bool Success, string ErrorMessage)> RunDotnetBuildAsync(string slnPath)
     {
         var workingDir = Path.GetDirectoryName(slnPath)!;
+        _logger.LogInformation("RunDotnetBuildAsync started - SlnPath: {SlnPath}, WorkingDir: {WorkingDir}", slnPath, workingDir);
 
         // First, run restore with timeout
-        _logger.LogInformation("Running dotnet restore for {SlnPath}", slnPath);
+        _logger.LogInformation("Starting dotnet restore for {SlnPath}", slnPath);
         
         var restorePsi = new System.Diagnostics.ProcessStartInfo
         {
@@ -140,7 +182,9 @@ public class CompilationCheck
             CreateNoWindow = true
         };
 
+        _logger.LogInformation("Starting restore process - Command: dotnet {Arguments}", restorePsi.Arguments);
         using var restoreProc = System.Diagnostics.Process.Start(restorePsi)!;
+        _logger.LogInformation("Restore process started with PID: {ProcessId}", restoreProc.Id);
         
         // Create cancellation token with timeout
         using var restoreCts = new CancellationTokenSource(TimeSpan.FromMinutes(2));
@@ -148,22 +192,28 @@ public class CompilationCheck
         try
         {
             await restoreProc.WaitForExitAsync(restoreCts.Token);
+            _logger.LogInformation("Restore process completed with exit code: {ExitCode}", restoreProc.ExitCode);
         }
         catch (OperationCanceledException)
         {
             restoreProc.Kill(true);
-            _logger.LogError("Restore timed out after 2 minutes");
+            _logger.LogError("Restore timed out after 2 minutes. Process killed.");
             return (false, "NuGet restore timed out after 2 minutes.");
         }
 
         if (restoreProc.ExitCode != 0)
         {
             var restoreError = await restoreProc.StandardError.ReadToEndAsync();
-            _logger.LogError("Restore failed:\n{Error}", restoreError);
-            return (false, "NuGet restore failed.\n" + restoreError);
+            var restoreOutput = await restoreProc.StandardOutput.ReadToEndAsync();
+            _logger.LogError("Restore failed with exit code {ExitCode}.\nStdErr: {Error}\nStdOut: {Output}",
+                restoreProc.ExitCode, restoreError, restoreOutput);
+            return (false, "Restore failed:\n" + restoreError);
         }
 
-        _logger.LogInformation("Running dotnet build for {SlnPath}", slnPath);
+        var restoreSuccessOutput = await restoreProc.StandardOutput.ReadToEndAsync();
+        _logger.LogInformation("Restore succeeded. Output: {Output}", restoreSuccessOutput);
+
+        _logger.LogInformation("Starting dotnet build for {SlnPath}", slnPath);
 
         var buildPsi = new System.Diagnostics.ProcessStartInfo
         {
@@ -176,7 +226,9 @@ public class CompilationCheck
             CreateNoWindow = true
         };
 
+        _logger.LogInformation("Starting build process - Command: dotnet {Arguments}", buildPsi.Arguments);
         using var buildProc = System.Diagnostics.Process.Start(buildPsi)!;
+        _logger.LogInformation("Build process started with PID: {ProcessId}", buildProc.Id);
         
         // Create cancellation token with timeout
         using var buildCts = new CancellationTokenSource(TimeSpan.FromMinutes(3));
@@ -184,11 +236,12 @@ public class CompilationCheck
         try
         {
             await buildProc.WaitForExitAsync(buildCts.Token);
+            _logger.LogInformation("Build process completed with exit code: {ExitCode}", buildProc.ExitCode);
         }
         catch (OperationCanceledException)
         {
             buildProc.Kill(true);
-            _logger.LogError("Build timed out after 3 minutes");
+            _logger.LogError("Build timed out after 3 minutes. Process killed.");
             return (false, "Build process timed out after 3 minutes. Project may have infinite loops or blocking code.");
         }
 
@@ -197,11 +250,12 @@ public class CompilationCheck
 
         if (buildProc.ExitCode != 0)
         {
-            _logger.LogError("Build failed:\n{Output}\n{Error}", output, error);
+            _logger.LogError("Build failed with exit code {ExitCode}.\nStdOut: {Output}\nStdErr: {Error}",
+                buildProc.ExitCode, output, error);
             return (false, "Build failed.\n" + error);
         }
 
-        _logger.LogInformation("Build succeeded");
+        _logger.LogInformation("Build succeeded. Output: {Output}", output);
         return (true, output);
     }
 
@@ -215,7 +269,7 @@ public class CompilationCheck
         {
             violations.Add(new
             {
-                ViolationType = (int)ViolationPolicy.CompilationError,
+                ViolationType = ViolationPolicy.CompilationError.ToString(),
                 Description = message
             });
         }
@@ -227,7 +281,9 @@ public class CompilationCheck
         };
 
         var apiUrl = _configuration["ExamAPI:BaseUrl"] ?? "http://localhost:5248";
-        var endpoint = $"{apiUrl}/api/v1/violations/save";
+        var endpoint = $"{apiUrl}/api/v1/violation/save";
+
+        _logger.LogInformation("Sending violation report to {Endpoint} with payload: {@Payload}", endpoint, payload);
 
         using var httpClient = _httpClientFactory.CreateClient();
         var json = new StringContent(
@@ -240,7 +296,8 @@ public class CompilationCheck
         
         if (response.IsSuccessStatusCode)
         {
-            _logger.LogInformation("Compilation result saved for {SubmissionId}", submissionId);
+            var responseContent = await response.Content.ReadAsStringAsync();
+            _logger.LogInformation("Compilation result saved for {SubmissionId}. Response: {Response}", submissionId, responseContent);
         }
         else
         {

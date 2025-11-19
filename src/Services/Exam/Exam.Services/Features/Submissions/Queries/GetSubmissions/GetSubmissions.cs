@@ -1,4 +1,5 @@
-﻿using Exam.Domain.Enums;
+﻿using Exam.Domain.Entities;
+using Exam.Domain.Enums;
 using Exam.Repositories.Interfaces.Repositories;
 using Exam.Services.Exceptions;
 using Exam.Services.Mappers;
@@ -44,9 +45,9 @@ public class GetSubmissionsQueryValidator : AbstractValidator<GetSubmissionsQuer
 public class GetSubmissionsHandler
     : IRequestHandler<GetSubmissionsQuery, DataServiceResponse<GetSubmissionsDto>>
 {
-    private readonly IUnitOfWork _unitOfWork;
-    private readonly ILogger<GetSubmissionsHandler> _logger;
     private readonly GraphServiceClient _graphClient;
+    private readonly ILogger<GetSubmissionsHandler> _logger;
+    private readonly IUnitOfWork _unitOfWork;
 
     public GetSubmissionsHandler(
         IUnitOfWork unitOfWork,
@@ -75,30 +76,32 @@ public class GetSubmissionsHandler
             request.PageIndex,
             request.PageSize);
 
-         try
+        try
         {
-            var repository = _unitOfWork.GetRepository<Exam.Domain.Entities.Submission>();
-            
+            var repository = _unitOfWork.GetRepository<Submission>();
+
             var query = repository.Query()
                 .Include(s => s.ExamSubject)
-                    .ThenInclude(es => es.Exam)
+                .ThenInclude(es => es.Exam)
                 .Include(s => s.ExamSubject)
-                    .ThenInclude(es => es.Subject)
+                .ThenInclude(es => es.Subject)
                 .Include(s => s.Assessments)
                 .AsNoTracking();
 
             // Filter by ExamCode 
             if (!string.IsNullOrWhiteSpace(request.ExamCode))
             {
-                query = query.Where(s => s.ExamSubject != null && 
-                    s.ExamSubject.Exam != null && s.ExamSubject.Exam.Code.Contains(request.ExamCode));
+                query = query.Where(s => s.ExamSubject != null &&
+                                         s.ExamSubject.Exam != null &&
+                                         s.ExamSubject.Exam.Code.Contains(request.ExamCode));
             }
 
             // Filter by SubjectCode
             if (!string.IsNullOrWhiteSpace(request.SubjectCode))
             {
-                query = query.Where(s => s.ExamSubject != null && 
-                    s.ExamSubject.Subject != null && s.ExamSubject.Subject.Code.Contains(request.SubjectCode));
+                query = query.Where(s => s.ExamSubject != null &&
+                                         s.ExamSubject.Subject != null &&
+                                         s.ExamSubject.Subject.Code.Contains(request.SubjectCode));
             }
 
             // Filter by Status
@@ -110,14 +113,16 @@ public class GetSubmissionsHandler
             // Filter by SubmissionName (search in Assessments)
             if (!string.IsNullOrWhiteSpace(request.SubmissionName))
             {
-                query = query.Where(s => s.Assessments.Any(a => 
+                query = query.Where(s => s.Assessments.Any(a =>
                     a.SubmissionName != null && a.SubmissionName.Contains(request.SubmissionName)));
             }
+
             // Filter by GradeStatus
             if (request.GradeStatus.HasValue)
             {
                 query = query.Where(s => s.GradeStatus == request.GradeStatus.Value);
             }
+
             // Filter by ExaminerEmail
             if (!string.IsNullOrWhiteSpace(request.ExaminerName))
             {
@@ -125,7 +130,8 @@ public class GetSubmissionsHandler
                 {
                     var examiners = await _graphClient.Users.GetAsync(r =>
                     {
-                        r.QueryParameters.Search = $"\"mail:{request.ExaminerName}\" OR \"userPrincipalName:{request.ExaminerName}\"";
+                        r.QueryParameters.Search =
+                            $"\"mail:{request.ExaminerName}\" OR \"userPrincipalName:{request.ExaminerName}\"";
                         r.QueryParameters.Count = true;
                         r.QueryParameters.Select = ["id"];
                         r.Headers.Add("ConsistencyLevel", "eventual");
@@ -147,6 +153,7 @@ public class GetSubmissionsHandler
                     _logger.LogWarning(ex, "Failed to search examiner by name: {ExaminerName}", request.ExaminerName);
                 }
             }
+
             // Filter by ModeratorName (search by email in Azure AD)
             if (!string.IsNullOrWhiteSpace(request.ModeratorName))
             {
@@ -154,7 +161,8 @@ public class GetSubmissionsHandler
                 {
                     var moderators = await _graphClient.Users.GetAsync(r =>
                     {
-                        r.QueryParameters.Search = $"\"mail:{request.ModeratorName}\" OR \"userPrincipalName:{request.ModeratorName}\"";
+                        r.QueryParameters.Search =
+                            $"\"mail:{request.ModeratorName}\" OR \"userPrincipalName:{request.ModeratorName}\"";
                         r.QueryParameters.Count = true;
                         r.QueryParameters.Select = ["id"];
                         r.Headers.Add("ConsistencyLevel", "eventual");
@@ -173,7 +181,8 @@ public class GetSubmissionsHandler
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogWarning(ex, "Failed to search moderator by name: {ModeratorName}", request.ModeratorName);
+                    _logger.LogWarning(ex, "Failed to search moderator by name: {ModeratorName}",
+                        request.ModeratorName);
                 }
             }
 
@@ -195,9 +204,14 @@ public class GetSubmissionsHandler
             foreach (var submission in submissions)
             {
                 if (submission.ExaminerId.HasValue)
+                {
                     userIds.Add(submission.ExaminerId.Value);
+                }
+
                 if (submission.ModeratorId.HasValue)
+                {
                     userIds.Add(submission.ModeratorId.Value);
+                }
             }
 
             // Dictionary để cache email theo userId
@@ -244,20 +258,23 @@ public class GetSubmissionsHandler
             // Tính toán pagination metadata
             var totalPages = (int)Math.Ceiling(totalCount / (double)request.PageSize);
 
-            // Tạo pagedSubmissions với constructor
-            var pagedSubmissions = new GetSubmissionsDto(submissions, request.PageIndex, request.PageSize, request.IndexFrom);
+            var pagedSubmissions = new GetSubmissionsDto
+            {
+                Items = submissions,
+                PageIndex = request.PageIndex,
+                PageSize = request.PageSize,
+                IndexFrom = request.IndexFrom,
+                TotalCount = totalCount,
+                TotalPages = totalPages,
+                TotalCurrentCount = submissions.Count
+            };
 
-            // Override lại các giá trị pagination đã tính từ database
-            pagedSubmissions.TotalCount = totalCount;
-            pagedSubmissions.TotalPages = totalPages;
-
-            _logger.LogInformation("GetSubmissions success: Retrieved {Count} submissions out of {Total}", submissions.Count, totalCount);
+            _logger.LogInformation("GetSubmissions success: Retrieved {Count} submissions out of {Total}",
+                submissions.Count, totalCount);
 
             return new DataServiceResponse<GetSubmissionsDto>()
             {
-                Success = true,
-                Message = "Lấy danh sách submissions thành công",
-                Data = pagedSubmissions
+                Success = true, Message = "Lấy danh sách submissions thành công", Data = pagedSubmissions
             };
         }
         catch (Exception ex)
