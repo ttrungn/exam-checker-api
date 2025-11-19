@@ -111,7 +111,7 @@ public class UnzipAndCheck
             _logger.LogInformation(
                 "Preparing SignalR notification for user {ExaminerId} with method 'SubmissionUploaded'",
                 examinerId);
-            
+
             var signalRMessage = new SignalRMessageAction("SubmissionUploaded")
             {
                 UserId = examinerId,
@@ -120,11 +120,11 @@ public class UnzipAndCheck
                     new { userId = examinerId }
                 ]
             };
-            
+
             _logger.LogInformation(
                 "Returning SignalR message action - Method: {Method}, UserId: {UserId}, Arguments: {@Arguments}. Azure Functions will now send this to SignalR service.",
                 signalRMessage.Target, signalRMessage.UserId, signalRMessage.Arguments);
-            
+
             return signalRMessage;
         }
         catch (Exception ex)
@@ -178,8 +178,8 @@ public class UnzipAndCheck
         _logger.LogInformation("Added ModeratorId: {ModeratorId}", moderatorId);
 
         // Call API endpoint
-        _logger.LogInformation("Sending POST request to /api/v1/submissions/process-from-blob");
-        var response = await httpClient.PostAsync("/api/v1/submissions/process-from-blob", formData, ct);
+        _logger.LogInformation("Sending POST request to api/v1/submissions/process-from-blob");
+        var response = await httpClient.PostAsync("api/v1/submissions/process-from-blob", formData, ct);
         _logger.LogInformation(
             "Received response - StatusCode: {StatusCode}, ReasonPhrase: {ReasonPhrase}",
             response.StatusCode, response.ReasonPhrase);
