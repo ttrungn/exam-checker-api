@@ -38,6 +38,7 @@ public class SubmissionsController : ControllerBase
     ///     User-facing endpoint
     /// </summary>
     [HttpPost("upload")]
+    [Authorize(Roles = $"{Roles.Manager}")]
     public async Task<IResult> UploadZipAsync(
         [FromForm] UploadSubmissionFromZipCommand command,
         CancellationToken cancellationToken = default)
@@ -80,6 +81,7 @@ public class SubmissionsController : ControllerBase
     }
 
     [HttpGet("{id:guid}")]
+    [Authorize(Roles = $"{Roles.Examiner},{Roles.Moderator},{Roles.Manager}")]
     public async Task<IActionResult> GetSubmissionById(
         Guid id,
         CancellationToken cancellationToken = default)
@@ -118,6 +120,7 @@ public class SubmissionsController : ControllerBase
 
     [HttpPut]
     [Route("{id:guid}/to-moderator-validated")]
+    [Authorize(Roles = $"{Roles.Moderator}")]
     public async Task<IResult> UpdateToModeratorValidated(
         [FromRoute] Guid id,
         CancellationToken cancellationToken = default)
@@ -135,6 +138,7 @@ public class SubmissionsController : ControllerBase
 
     [HttpPut]
     [Route("{id:guid}/to-moderator-violated")]
+    [Authorize(Roles = $"{Roles.Moderator}")]
     public async Task<IResult> UpdateToModeratorViolated(
         [FromRoute] Guid id,
         CancellationToken cancellationToken = default)

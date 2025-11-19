@@ -1,4 +1,5 @@
 ﻿using Asp.Versioning;
+using Domain.Constants;
 using Exam.API.Mappers;
 using Exam.Services.Features.Subjects.Commands.CreateSubject;
 using Exam.Services.Features.Subjects.Commands.DeleteSubject;
@@ -9,6 +10,7 @@ using Exam.Services.Models.Requests.Subjects;
 using Exam.Services.Models.Responses;
 using Exam.Services.Models.Responses.Subjects;
 using MediatR;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Exam.API.Controllers.v1;
@@ -26,6 +28,7 @@ public class SubjectsController : ControllerBase
     }
 
     [HttpPost]
+    [Authorize(Roles = $"{Roles.Admin}")]
     public async Task<IResult> CreateAsync(
         CreateSubjectCommand command,
         CancellationToken cancellationToken = default)
@@ -41,6 +44,7 @@ public class SubjectsController : ControllerBase
     }
 
     [HttpPut("{id:guid}")]
+    [Authorize(Roles = $"{Roles.Admin}")]
     public async Task<IResult> UpdateAsync(
         [FromRoute] Guid id,
         [FromBody] SubjectRequest request,
@@ -60,6 +64,7 @@ public class SubjectsController : ControllerBase
     }
 
     [HttpDelete("{id:guid}")]
+    [Authorize(Roles = $"{Roles.Admin}")]
     public async Task<IResult> DeleteAsync(
         [FromRoute] Guid id,
         CancellationToken cancellationToken = default)
@@ -75,6 +80,7 @@ public class SubjectsController : ControllerBase
     }
 
     [HttpGet("{id:guid}")]
+    [Authorize(Roles = $"{Roles.Admin}")]
     public async Task<IResult> GetByIdAsync(
         [FromRoute] Guid id,
         CancellationToken cancellationToken = default)
@@ -90,6 +96,7 @@ public class SubjectsController : ControllerBase
     }
 
     [HttpGet]
+    [Authorize(Roles = $"{Roles.Admin}")]
     public async Task<IResult> GetAsync(
         [FromQuery] SubjectGetRequest request,
         CancellationToken cancellationToken = default)

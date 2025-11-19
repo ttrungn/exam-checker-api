@@ -1,4 +1,5 @@
 ﻿using Asp.Versioning;
+using Domain.Constants;
 using Exam.API.Mappers;
 using Exam.Domain.Enums;
 using Exam.Services.Features.Assessments.Commands.GradeAssessment;
@@ -6,6 +7,7 @@ using Exam.Services.Features.Assessments.Commands.UpdateStatusAssessment;
 using Exam.Services.Features.Assessments.Queries;
 using Exam.Services.Models.Requests.Assessments;
 using MediatR;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Exam.API.Controllers.v1;
@@ -24,6 +26,7 @@ public class AssessmentsController : ControllerBase
 
     // Grade an assessment
     [HttpPut("{id:guid}/grade")]
+    [Authorize(Roles = $"{Roles.Examiner}")]
     public async Task<IResult> GradeAsync(
         [FromRoute] Guid id,
         [FromBody] GradeAssessmentRequest request,
@@ -44,6 +47,7 @@ public class AssessmentsController : ControllerBase
     
     // Get assessment detail
     [HttpGet("{id:guid}")]
+    [Authorize(Roles = $"{Roles.Examiner}")]
     public async Task<IResult> GetDetailAsync(
         [FromRoute] Guid id,
         CancellationToken cancellationToken = default)
@@ -88,5 +92,27 @@ public class AssessmentsController : ControllerBase
         }
         return TypedResults.NoContent();
     }
-    
+    [HttpGet("export")]
+    [Authorize(Roles = $"{Roles.Admin}")]
+    public async Task<IActionResult> ExportAsync(
+        [FromQuery] ExportExamResultsQuery query,
+        CancellationToken cancellationToken = default)
+    {
+
+        var result = await _sender.Send(query, cancellationToken);
+
+        if (!result.Success || result!.Data is null)
+        {
+            // dùng mapper ToBaseApiResponse() cho đồng bộ convention
+            return BadRequest(result.ToBaseApiResponse());
+        }
+
+        var fileResult = result.Data;
+
+        return File(
+            fileResult.FileContent,
+            fileResult.ContentType,
+            fileResult.FileName);
+    }
 }
+

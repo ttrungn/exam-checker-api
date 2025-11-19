@@ -62,12 +62,12 @@ public class ExamSubjectService : IExamSubjectService
 
         if (!string.IsNullOrEmpty(query.ExamCode))
         {
-            dbQuery = dbQuery.Where(es => es.Exam.Code.Equals(query.ExamCode,StringComparison.OrdinalIgnoreCase));
+            dbQuery = dbQuery.Where(es => es.Exam.Code.Contains(query.ExamCode));
         }
 
         if (!string.IsNullOrEmpty(query.SubjectCode))
         {
-            dbQuery = dbQuery.Where(es => es.Subject.Code.Equals(query.SubjectCode, StringComparison.OrdinalIgnoreCase));
+            dbQuery = dbQuery.Where(es => es.Subject.Code.Contains(query.SubjectCode));
         }
 
         if (query.IsActive.HasValue)

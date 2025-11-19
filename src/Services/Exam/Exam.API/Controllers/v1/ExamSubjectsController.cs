@@ -1,4 +1,5 @@
 ﻿using Asp.Versioning;
+using Domain.Constants;
 using Exam.API.Mappers;
 using Exam.Services.Features.ExamSubjects.Commands;
 using Exam.Services.Models.Requests.ExamSubjects;
@@ -11,6 +12,7 @@ using Exam.Services.Models.Validations;
 using Exam.Services.Features.ExamSubjects.Commands.UpdateViolationStructure;
 using Exam.Services.Features.ExamSubjects.Queries.GetExamSubjectById;
 using Exam.Services.Features.ExamSubjects.Queries.GetExamSubjects;
+using Microsoft.AspNetCore.Authorization;
 
 namespace Exam.API.Controllers.v1;
 
@@ -46,6 +48,7 @@ public class ExamSubjectsController : ControllerBase
         return TypedResults.BadRequest(result.ToBaseApiResponse());
     }
     [HttpPost("{id:guid}/score-structure/import")]
+    [Authorize(Roles = $"{Roles.Manager}")]
     public async Task<IResult> ImportScoreStructureAsync(
         [FromRoute] Guid id,
         [FromForm] ImportScoreStructureRequest request,
@@ -68,6 +71,7 @@ public class ExamSubjectsController : ControllerBase
     }
 
     [HttpGet]
+    [Authorize(Roles = $"{Roles.Manager},{Roles.Admin}")]
     public async Task<IResult> GetExamSubjectsAsync(
         [FromQuery] GetExamSubjectsQuery request,
         CancellationToken token = default)
