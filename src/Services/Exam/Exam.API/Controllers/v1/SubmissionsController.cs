@@ -1,6 +1,9 @@
 using System.Security.Claims;
 using Asp.Versioning;
+using Domain.Constants;
 using Exam.API.Mappers;
+using Exam.Services.Features.Submissions.Commands.ApproveAssessment;
+using Exam.Services.Features.Submissions.Commands.AssignAssessment;
 using Exam.Services.Features.Submissions.Commands.CreateSubmissionsFromZipCommand;
 using Exam.Services.Features.Submissions.Commands.UpdateToModeratorValidated;
 using Exam.Services.Features.Submissions.Commands.UpdateToModeratorViolated;
@@ -11,6 +14,7 @@ using Exam.Services.Features.Submissions.Queries.GetSubmissions;
 using Exam.Services.Interfaces.Services;
 using Exam.Services.Models.Requests.Submissions;
 using MediatR;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Exam.API.Controllers.v1;
@@ -30,8 +34,8 @@ public class SubmissionsController : ControllerBase
     }
 
     /// <summary>
-    /// Upload zip file to blob storage for background processing
-    /// User-facing endpoint
+    ///     Upload zip file to blob storage for background processing
+    ///     User-facing endpoint
     /// </summary>
     [HttpPost("upload")]
     public async Task<IResult> UploadZipAsync(
@@ -40,14 +44,17 @@ public class SubmissionsController : ControllerBase
     {
         var result =
             await _submissionService.UploadZipForProcessingAsync(command, cancellationToken);
-        if (!result.Success) return Results.BadRequest(result);
+        if (!result.Success)
+        {
+            return Results.BadRequest(result);
+        }
 
         return Results.Accepted(null, result);
     }
 
     /// <summary>
-    /// Process zip file from blob storage and create submissions
-    /// Internal endpoint
+    ///     Process zip file from blob storage and create submissions
+    ///     Internal endpoint
     /// </summary>
     [HttpPost("process-from-blob")]
     public async Task<IResult> ProcessFromBlobAsync(
@@ -55,7 +62,10 @@ public class SubmissionsController : ControllerBase
         CancellationToken cancellationToken = default)
     {
         var result = await _sender.Send(command, cancellationToken);
-        if (!result.Success) return Results.BadRequest(result.ToDataApiResponse());
+        if (!result.Success)
+        {
+            return Results.BadRequest(result.ToDataApiResponse());
+        }
 
         return Results.Ok(result.ToDataApiResponse());
     }
@@ -80,7 +90,7 @@ public class SubmissionsController : ControllerBase
     }
 
     [HttpGet("user")]
-    //[Authorize(Roles = $"{Roles.Examiner},{Roles.Moderator}")]
+    [Authorize(Roles = $"{Roles.Examiner},{Roles.Moderator}")]
     public async Task<IActionResult> GetSubmissionsByUser(
         [FromQuery] SubmissionRequest request,
         CancellationToken cancellationToken = default)
@@ -137,5 +147,27 @@ public class SubmissionsController : ControllerBase
         }
 
         return Results.BadRequest(result.ToBaseApiResponse());
+    }
+
+    [HttpPost]
+    [Route("assessments/approve")]
+    [Authorize(Roles = $"{Roles.Manager}")]
+    public async Task<IActionResult> ApproveAssessment(
+        [FromBody] ApproveAssessmentCommand assessmentCommand,
+        CancellationToken cancellationToken = default)
+    {
+        var result = await _sender.Send(assessmentCommand, cancellationToken);
+        return Ok(result.ToBaseApiResponse());
+    }
+
+    [HttpPost]
+    [Route("assign")]
+    [Authorize(Roles = $"{Roles.Manager}")]
+    public async Task<IActionResult> AssignSubmission(
+        [FromBody] AssignSubmissionCommand command,
+        CancellationToken cancellationToken = default)
+    {
+        var result = await _sender.Send(command, cancellationToken);
+        return Ok(result.ToBaseApiResponse());
     }
 }
