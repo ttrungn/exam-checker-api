@@ -4,6 +4,7 @@ using Asp.Versioning;
 using Exam.API.Infrastructures;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.OData;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.Identity.Web;
 using Microsoft.OpenApi.Models;
@@ -14,6 +15,7 @@ public static class DependencyInjection
 {
     public static void AddApiServices(this IHostApplicationBuilder builder)
     {
+        
         builder.Services.AddHttpContextAccessor();
         builder.Services.AddExceptionHandler<CustomExceptionHandler>();
         builder.Services.AddProblemDetails();
@@ -67,7 +69,16 @@ public static class DependencyInjection
                 options.FormatterMappings.SetMediaTypeMappingForFormat("xml", "application/xml");
                 options.FormatterMappings.SetMediaTypeMappingForFormat("json", "application/json");
             })
-            .AddXmlSerializerFormatters()
+            .AddOData(options =>
+            {
+                options.Select()
+                    .Filter()
+                    .OrderBy()
+                    .Count()
+                    .Expand()
+                    .SetMaxTop(100)
+                    .AddRouteComponents("api/v1", ODataConfig.GetEdmModel());
+            })
             .AddJsonOptions(options =>
             {
                 options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;

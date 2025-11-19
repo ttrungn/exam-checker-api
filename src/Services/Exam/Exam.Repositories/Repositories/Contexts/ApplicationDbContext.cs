@@ -9,7 +9,11 @@ public class ApplicationDbContext : DbContext
     public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options) : base(options)
     {
     }
+    public DbSet<Submission> Submissions { get; set; }
 
+    public DbSet<Violation> Violations { get; set; }
+    
+    public DbSet<Assessment> Assessments { get; set; }  
     public DbSet<Semester> Semesters => Set<Semester>();
     public DbSet<Domain.Entities.Exam> Exams => Set<Domain.Entities.Exam>();
     public DbSet<Subject> Subjects => Set<Subject>();
