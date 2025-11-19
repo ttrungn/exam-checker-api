@@ -182,4 +182,67 @@ public class GraphClientService : IGraphClientService
                 "Đã có lỗi hệ thống xảy ra, vui lòng liên hệ admin để được hỗ trợ!");
         }
     }
+
+    public async Task<List<AppRole>> GetUserAppRolesForApplicationAsync(
+        Guid userId,
+        string clientId,
+        CancellationToken cancellationToken = default)
+    {
+        _logger.LogInformation(
+            "Fetching user app roles for user: {UserId}, clientId: {ClientId}",
+            userId, clientId);
+
+        try
+        {
+            // 1. Get Service Principal for this clientId
+            var servicePrincipal = await GetServicePrincipalByClientIdAsync(clientId, cancellationToken);
+            if (servicePrincipal.Id is null)
+            {
+                _logger.LogError("Service principal for clientId {ClientId} has no Id.", clientId);
+                throw new ServiceUnavailableException(
+                    "Đã có lỗi hệ thống xảy ra, vui lòng liên hệ admin để được hỗ trợ!");
+            }
+
+            var resourceId = Guid.Parse(servicePrincipal.Id);
+
+            // 2. Get role assignments of this user for that app (service principal)
+            var assignments = await GetUserAppRolesAsync(userId, resourceId, cancellationToken);
+
+            if (assignments.Count == 0)
+            {
+                _logger.LogInformation(
+                    "No app role assignments found for user {UserId} and clientId {ClientId}.",
+                    userId, clientId);
+                return [];
+            }
+
+            // 3. Get all app roles defined on this application
+            var appRoles = await GetAppRolesAsync(clientId, cancellationToken);
+
+            // 4. Map assignments -> actual AppRole
+            var assignedRoleIds = assignments
+                .Where(a => a.AppRoleId.HasValue)
+                .Select(a => a.AppRoleId!.Value)
+                .ToHashSet();
+
+            var userRoles = appRoles
+                .Where(r => r.Id.HasValue && assignedRoleIds.Contains(r.Id.Value))
+                .ToList();
+
+            _logger.LogInformation(
+                "Resolved {Count} app roles for user {UserId} and clientId {ClientId}.",
+                userRoles.Count, userId, clientId);
+
+            return userRoles;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex,
+                "Failed to fetch user app roles for user {UserId} and clientId {ClientId}.",
+                userId, clientId);
+
+            throw new ServiceUnavailableException(
+                "Đã có lỗi hệ thống xảy ra, vui lòng liên hệ admin để được hỗ trợ!");
+        }
+    }
 }
