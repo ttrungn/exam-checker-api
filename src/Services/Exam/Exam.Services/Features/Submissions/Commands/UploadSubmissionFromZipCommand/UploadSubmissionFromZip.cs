@@ -14,6 +14,7 @@ public record UploadSubmissionFromZipCommand  : IRequest<DataServiceResponse<Lis
 {
     public Guid ExaminerId { get; set; }
     public Guid ExamSubjectId { get; set; }
+    public Guid ModeratorId { get; set; }
     public IFormFile ArchiveFile { get; set; } = null!;
 }
 

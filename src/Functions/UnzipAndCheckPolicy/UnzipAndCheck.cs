@@ -20,20 +20,21 @@ public class UnzipAndCheck
         _httpClientFactory = httpClientFactory;
     }
 
-    // Blob: uploads/{examSubjectId}/{examinerId}/{name}.zip
+    // Blob: uploads/{examSubjectId}/{examinerId}/{moderatorId}/{name}.zip
     [Function(nameof(UnzipAndCheck))]
     public async Task Run(
-        [BlobTrigger("uploads/{examSubjectId}/{examinerId}/{name}", 
+        [BlobTrigger("uploads/{examSubjectId}/{examinerId}/{moderatorId}/{name}", 
             Connection = "AzureWebJobsStorage")]
         Stream zipStream,
         string examSubjectId,
         string examinerId,
+        string moderatorId,
         string name,
         FunctionContext context)
     {
         _logger.LogInformation(
-            "Triggered for blob: uploads/{ExamSubjectId}/{ExaminerId}/{Name}",
-            examSubjectId, examinerId, name);
+            "Triggered for blob: uploads/{ExamSubjectId}/{ExaminerId}/{ModeratorId}/{Name}",
+            examSubjectId, examinerId, moderatorId, name);
         //Validate file extension
         var extension = Path.GetExtension(name);
         if (!SupportedExtensions.Contains(extension))
@@ -55,6 +56,13 @@ public class UnzipAndCheck
             return;
         }
         
+        //Parse moderatorId
+        if (!Guid.TryParse(moderatorId, out var moderatorGuid))
+        {
+            _logger.LogError("Invalid examinerId: {Value}", moderatorId);
+            return;
+        }
+        
         var ct = context.CancellationToken;
 
         try
@@ -64,7 +72,7 @@ public class UnzipAndCheck
             await zipStream.CopyToAsync(mem, ct);
             mem.Position = 0;
 
-            await SendToApiAsync(mem, examSubjectGuid, examinerGuid, name, extension, ct);
+            await SendToApiAsync(mem, examSubjectGuid, examinerGuid, moderatorGuid, name, extension, ct);
             _logger.LogInformation("Successfully processed blob {Name} for ExamSubject {ExamSubjectId}", name, examSubjectId);
         }
         catch (Exception ex)
@@ -79,6 +87,7 @@ public class UnzipAndCheck
         MemoryStream archiveStream,
         Guid examSubjectId,
         Guid examinerId,
+        Guid moderatorId,
         string fileName,
         string extension,
         CancellationToken ct)
@@ -100,7 +109,10 @@ public class UnzipAndCheck
         
         // Add examinerId
         formData.Add(new StringContent(examinerId.ToString()), "ExaminerId");
-
+        
+        // Add moderatorId
+        formData.Add(new StringContent(moderatorId.ToString()), "ModeratorId");
+        
         // Call API endpoint
         var response = await httpClient.PostAsync("/api/v1/submissions/process-from-blob", formData, ct);
 
