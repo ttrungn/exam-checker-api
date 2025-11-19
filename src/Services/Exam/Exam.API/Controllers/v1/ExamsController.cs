@@ -1,4 +1,5 @@
 ﻿using Asp.Versioning;
+using Domain.Constants;
 using Exam.API.Mappers;
 using Exam.Services.Features.Exams.Commands.CreateExam;
 using Exam.Services.Features.Exams.Commands.DeleteExam;
@@ -9,6 +10,7 @@ using Exam.Services.Models.Requests.Exams;
 using Exam.Services.Models.Responses;
 using Exam.Services.Models.Responses.Exams;
 using MediatR;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Exam.API.Controllers.v1;
@@ -26,6 +28,7 @@ public class ExamsController : ControllerBase
     }
 
     [HttpPost]
+    [Authorize(Roles = $"{Roles.Admin}")]
     public async Task<IResult> CreateAsync(
         [FromBody] CreateExamCommand command,
         CancellationToken cancellationToken = default)
@@ -41,6 +44,7 @@ public class ExamsController : ControllerBase
     }
 
     [HttpPut("{id:guid}")]
+    [Authorize(Roles = $"{Roles.Admin}")]
     public async Task<IResult> UpdateAsync(
         [FromRoute] Guid id,
         [FromBody] CreateExamCommand request,
@@ -64,6 +68,7 @@ public class ExamsController : ControllerBase
     }
 
     [HttpDelete("{id:guid}")]
+    [Authorize(Roles = $"{Roles.Admin}")]
     public async Task<IResult> DeleteAsync(
         [FromRoute] Guid id,
         CancellationToken cancellationToken = default)
@@ -79,6 +84,7 @@ public class ExamsController : ControllerBase
     }
 
     [HttpGet("{id:guid}")]
+    [Authorize(Roles = $"{Roles.Admin}")]
     public async Task<IResult> GetByIdAsync(
         [FromRoute] Guid id,
         CancellationToken cancellationToken = default)
@@ -94,6 +100,7 @@ public class ExamsController : ControllerBase
     }
 
     [HttpGet]
+    [Authorize(Roles = $"{Roles.Admin}")]
     public async Task<IResult> GetExamsAsync(
         [FromQuery] ExamGetRequest request,
         CancellationToken cancellationToken = default)
