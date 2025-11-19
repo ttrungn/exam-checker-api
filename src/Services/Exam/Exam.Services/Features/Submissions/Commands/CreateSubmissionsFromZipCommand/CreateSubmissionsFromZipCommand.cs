@@ -9,6 +9,7 @@ public record CreateSubmissionsFromZipCommand  : IRequest<DataServiceResponse<Li
 {
     public Guid ExaminerId { get; set; }
     public Guid ExamSubjectId { get; set; }
+    public Guid ModeratorId { get; set; }
     public IFormFile ArchiveFile { get; set; } = null!;
 }
 
@@ -21,6 +22,8 @@ public class CreateSubmissionsFromZipCommandValidator : AbstractValidator<Create
             .NotEmpty().WithMessage("ExaminerId is required.");
         RuleFor(x => x.ExamSubjectId)
             .NotEmpty().WithMessage("ExamSubjectId is required.");
+        RuleFor(x => x.ModeratorId)
+            .NotEmpty().WithMessage("ModeratorId is required.");
         RuleFor(x => x.ArchiveFile)
             .NotEmpty().WithMessage("ArchiveFile is required.")
             .Must(file => file != null && SupportedExtensions.Any(ext => 
