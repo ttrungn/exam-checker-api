@@ -113,7 +113,7 @@ public class SubmissionsController : ControllerBase
             Status = request.Status,
             SubmissionName = request.SubmissionName,
             AssessmentStatus = request.AssessmentStatus
-        };
+        };    
         var result = await _sender.Send(query, cancellationToken);
         return Ok(result.ToDataApiResponse());
     }
