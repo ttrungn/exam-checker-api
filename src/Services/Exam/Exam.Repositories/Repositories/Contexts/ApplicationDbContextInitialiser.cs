@@ -629,11 +629,10 @@ public class ApplicationDbContextInitializer
                                      """;
         var examSubjects = new List<ExamSubject>
         {
-            new ExamSubject
+           new ExamSubject
             {
-                Id = Guid.Parse("ed2534e9-e37f-48b4-b634-dd84d25b184d"),
-                ExamId = Guid.Parse("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"), // ví dụ FALL25
-                // Subject PRN222 (đúng guid bạn seed ở trên)
+                Id = Guid.Parse("11111111-aaaa-bbbb-cccc-000000000001"),
+                ExamId = Guid.Parse("c9c9c9c9-c9c9-c9c9-c9c9-c9c9c9c9c9c9"), // FINAL25
                 SubjectId = Guid.Parse("e2d2c2b2-a2a2-9292-8282-727272727272"), // PRN222
                 ScoreStructure    = null,
                 ViolationStructure = violationStructureJson,
@@ -644,9 +643,81 @@ public class ApplicationDbContextInitializer
             },
             new ExamSubject
             {
-                Id = Guid.Parse("847a310f-5dd7-43ed-b3f9-f65ec65b499f"),
-                ExamId = Guid.Parse("cccccccc-cccc-cccc-cccc-cccccccccccc"), // ví dụ SUMMER25
+                Id = Guid.Parse("22222222-aaaa-bbbb-cccc-000000000002"),
+                ExamId = Guid.Parse("e1e1e1e1-e1e1-e1e1-e1e1-e1e1e1e1e1e1"), // RETAKE25
                 SubjectId = Guid.Parse("e2d2c2b2-a2a2-9292-8282-727272727272"), // PRN222
+                ScoreStructure    = null,
+                ViolationStructure = violationStructureJson,
+                CreatedAt         = DateTime.UtcNow,
+                UpdatedAt         = DateTime.MinValue,
+                DeletedAt         = DateTime.MinValue,
+                IsActive          = true
+            },
+            new ExamSubject
+            {
+                Id = Guid.Parse("33333333-aaaa-bbbb-cccc-000000000003"),
+                ExamId = Guid.Parse("f6f6f6f6-f6f6-f6f6-f6f6-f6f6f6f6f6f6"), // MIDFALL25
+                SubjectId = Guid.Parse("e2d2c2b2-a2a2-9292-8282-727272727272"), // PRN222
+                ScoreStructure    = null,
+                ViolationStructure = violationStructureJson,
+                CreatedAt         = DateTime.UtcNow,
+                UpdatedAt         = DateTime.MinValue,
+                DeletedAt         = DateTime.MinValue,
+                IsActive          = true
+            },
+            new ExamSubject
+            {
+                Id = Guid.Parse("44444444-aaaa-bbbb-cccc-000000000004"),
+                ExamId = Guid.Parse("a3a3a3a3-a3a3-a3a3-a3a3-a3a3a3a3a3a3"), // SPECIAL25
+                SubjectId = Guid.Parse("e2d2c2b2-a2a2-9292-8282-727272727272"), // PRN222
+                ScoreStructure    = null,
+                ViolationStructure = violationStructureJson,
+                CreatedAt         = DateTime.UtcNow,
+                UpdatedAt         = DateTime.MinValue,
+                DeletedAt         = DateTime.MinValue,
+                IsActive          = true
+            },
+            new ExamSubject
+            {
+                Id = Guid.Parse("55555555-aaaa-bbbb-cccc-000000000005"),
+                ExamId = Guid.Parse("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb"), // SPRING25
+                SubjectId = Guid.Parse("e2d2c2b2-a2a2-9292-8282-727272727272"), // PRN222
+                ScoreStructure    = null,
+                ViolationStructure = violationStructureJson,
+                CreatedAt         = DateTime.UtcNow,
+                UpdatedAt         = DateTime.MinValue,
+                DeletedAt         = DateTime.MinValue,
+                IsActive          = true
+            },
+            new ExamSubject
+            {
+                Id = Guid.Parse("66666666-aaaa-bbbb-cccc-000000000006"),
+                ExamId = Guid.Parse("d0d0d0d0-d0d0-d0d0-d0d0-d0d0d0d0d0d0"), // FINAL26
+                SubjectId = Guid.Parse("e2d2c2b2-a2a2-9292-8282-727272727272"),
+                ScoreStructure    = null,
+                ViolationStructure = violationStructureJson,
+                CreatedAt         = DateTime.UtcNow,
+                UpdatedAt         = DateTime.MinValue,
+                DeletedAt         = DateTime.MinValue,
+                IsActive          = true
+            },
+            new ExamSubject
+            {
+                Id = Guid.Parse("77777777-aaaa-bbbb-cccc-000000000007"),
+                ExamId = Guid.Parse("f2f2f2f2-f2f2-f2f2-f2f2-f2f2f2f2f2f2"), // RETAKE26
+                SubjectId = Guid.Parse("e2d2c2b2-a2a2-9292-8282-727272727272"),
+                ScoreStructure    = null,
+                ViolationStructure = violationStructureJson,
+                CreatedAt         = DateTime.UtcNow,
+                UpdatedAt         = DateTime.MinValue,
+                DeletedAt         = DateTime.MinValue,
+                IsActive          = true
+            },
+            new ExamSubject
+            {
+                Id = Guid.Parse("88888888-aaaa-bbbb-cccc-000000000008"),
+                ExamId = Guid.Parse("b4b4b4b4-b4b4-b4b4-b4b4-b4b4b4b4b4b4"), // MAKEUP26
+                SubjectId = Guid.Parse("e2d2c2b2-a2a2-9292-8282-727272727272"),
                 ScoreStructure    = null,
                 ViolationStructure = violationStructureJson,
                 CreatedAt         = DateTime.UtcNow,
