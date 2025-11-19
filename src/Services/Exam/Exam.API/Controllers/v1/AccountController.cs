@@ -7,6 +7,7 @@ using Exam.Services.Features.Account.Commands.AssignARoleToAnAccount;
 using Exam.Services.Features.Account.Commands.CreateAnAccount;
 using Exam.Services.Features.Account.Queries.GetAppRoles;
 using Exam.Services.Features.Account.Queries.GetExaminers;
+using Exam.Services.Features.Account.Queries.GetModerators;
 using Exam.Services.Features.Account.Queries.GetUserProfile;
 using Exam.Services.Features.Account.Queries.GetUsers;
 using MediatR;
@@ -88,6 +89,13 @@ public class AccountController : ControllerBase
     [HttpGet("examiners")]
     [Authorize(Roles = $"{Roles.Admin},{Roles.Manager},{Roles.Moderator}")]
     public async Task<IActionResult> GetExaminers([FromQuery] GetExaminersQuery request)
+    {
+        var result = await _sender.Send(request);
+        return Ok(result.ToDataApiResponse());
+    }
+    [HttpGet("moderators")]
+    [Authorize(Roles = $"{Roles.Admin},{Roles.Manager},{Roles.Moderator}")]
+    public async Task<IActionResult> GetModerator([FromQuery] GetModeratorsQuery request)
     {
         var result = await _sender.Send(request);
         return Ok(result.ToDataApiResponse());
