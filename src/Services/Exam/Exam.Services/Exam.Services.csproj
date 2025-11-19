@@ -25,6 +25,7 @@
     <PackageReference Include="Microsoft.Graph" Version="5.95.0" />
     <PackageReference Include="Azure.Storage.Blobs" Version="12.26.0" />
     <PackageReference Include="ClosedXML" Version="0.105.0" />
+    <PackageReference Include="SharpCompress" Version="0.38.0" />
   </ItemGroup>
 
 </Project>
