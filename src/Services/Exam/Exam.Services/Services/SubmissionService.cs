@@ -15,6 +15,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using SharpCompress.Archives;
 using static Microsoft.EntityFrameworkCore.DbLoggerCategory.Model;
 
 namespace Exam.Services.Services;
@@ -47,18 +48,18 @@ public class SubmissionService : ISubmissionService
         CancellationToken cancellationToken = default)
     {
         _logger.LogInformation("CreateSubmissionsFromZipAsync invoked: ExamSubjectId={ExamSubjectId}, FileName={FileName}", 
-            command.ExamSubjectId, command.ZipFile?.FileName);
+            command.ExamSubjectId, command.ArchiveFile?.FileName);
         
 
         try
         {
             await using var mem = new MemoryStream();
-            await command.ZipFile!.CopyToAsync(mem, cancellationToken);
+            await command.ArchiveFile!.CopyToAsync(mem, cancellationToken);
             mem.Position = 0;
 
             var result = await ProcessZipCoreAsync(
                 mem,
-                command.ZipFile.FileName,
+                command.ArchiveFile.FileName,
                 command.ExamSubjectId,
                 command.ExaminerId,
                 cancellationToken);
@@ -86,7 +87,7 @@ public class SubmissionService : ISubmissionService
         CancellationToken cancellationToken = default)
     {
         _logger.LogInformation("UploadZipForProcessingAsync invoked: ExamSubjectId={ExamSubjectId}, FileName={FileName}", 
-            command.ExamSubjectId, command.ZipFile?.FileName);
+            command.ExamSubjectId, command.ArchiveFile?.FileName);
         
         ExamSubject? exist;
         try
@@ -133,9 +134,9 @@ public class SubmissionService : ISubmissionService
 
             // path/metadata cho trigger
             // vd: uploads/{examSubjectId}/{originalName}
-            var blobName = $"{command.ExamSubjectId}/{command.ExaminerId}/{command.ZipFile!.FileName}";
+            var blobName = $"{command.ExamSubjectId}/{command.ExaminerId}/{command.ArchiveFile!.FileName}";
 
-            await using var stream = command.ZipFile.OpenReadStream();
+            await using var stream = command.ArchiveFile.OpenReadStream();
             await _blobService.UploadAsync(stream, blobName, uploadsContainer);
             _logger.LogInformation("UploadZipForProcessingAsync success: Uploaded to {BlobName}", blobName);
 
@@ -157,7 +158,7 @@ public class SubmissionService : ISubmissionService
     
     // Core logic dùng chung cho cả API & Function
     private async Task<DataServiceResponse<List<Guid>>> ProcessZipCoreAsync(
-        Stream zipStream,
+        Stream stream,
         string zipFileName,
         Guid examSubjectId,
         Guid? examinerId,
@@ -207,12 +208,12 @@ public class SubmissionService : ISubmissionService
 
         try
         {
-            using var zip = new ZipArchive(zipStream, ZipArchiveMode.Read, leaveOpen: true);
+            using var archive = ArchiveFactory.Open(stream);
 
             // group theo thư mục sinh viên
-            var groups = zip.Entries
-                .Where(e => !string.IsNullOrEmpty(e.Name))
-                .Select(e => new { Entry = e, Path = NormalizeZipPath(e.FullName) })
+            var groups = archive.Entries
+                .Where(e => !e.IsDirectory && !string.IsNullOrEmpty(e.Key))
+                .Select(e => new { Entry = e, Path = NormalizeArchivePath(e.Key!) })
                 .Where(x => !string.IsNullOrEmpty(x.Path))
                 .GroupBy(x => x.Path.Split('/')[0], StringComparer.OrdinalIgnoreCase);
 
@@ -231,12 +232,12 @@ public class SubmissionService : ISubmissionService
                         {
                             var parts      = x.Path.Split('/', StringSplitOptions.RemoveEmptyEntries);
                             var insidePath = string.Join('/', parts.Skip(1));
-                            var entryName  = string.IsNullOrWhiteSpace(insidePath)
-                                ? x.Entry.Name
+                            var entryName = string.IsNullOrWhiteSpace(insidePath)
+                                ? System.IO.Path.GetFileName(x.Entry.Key ?? "")
                                 : insidePath;
 
                             var newEntry = studentZipWriter.CreateEntry(entryName, CompressionLevel.SmallestSize);
-                            await using var src = x.Entry.Open();
+                            await using var src = x.Entry.OpenEntryStream();
                             await using var dst = newEntry.Open();
                             await src.CopyToAsync(dst, ct);
                         }
@@ -285,7 +286,7 @@ public class SubmissionService : ISubmissionService
                     var violationResult = await _violationService.ValidateSubmissionAsync(
                         submission.Id,
                         readableZip,
-                        rules,
+                        rules!,
                         sasUrl,
                         ct);
 
@@ -369,7 +370,15 @@ public class SubmissionService : ISubmissionService
             throw new InvalidOperationException("Invalid path traversal in zip.");
         return p;
     }
-
+    private static string NormalizeArchivePath(string raw)
+    {
+        var p = raw.Replace('\\', '/').Trim();
+        if (p.StartsWith("/")) p = p.TrimStart('/');
+        if (p.EndsWith("/")) return string.Empty;
+        if (p.Contains("../") || p.Contains("..\\"))
+            throw new InvalidOperationException("Invalid path traversal in archive.");
+        return p;
+    }
     #endregion
   
 }

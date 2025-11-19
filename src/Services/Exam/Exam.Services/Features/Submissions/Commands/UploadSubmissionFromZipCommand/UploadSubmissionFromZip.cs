@@ -14,22 +14,23 @@ public record UploadSubmissionFromZipCommand  : IRequest<DataServiceResponse<Lis
 {
     public Guid ExaminerId { get; set; }
     public Guid ExamSubjectId { get; set; }
-    public IFormFile ZipFile { get; set; } = null!;
+    public IFormFile ArchiveFile { get; set; } = null!;
 }
 
 public class UploadSubmissionFromZipCommandValidator : AbstractValidator<UploadSubmissionFromZipCommand >
 {
+    private static readonly string[] SupportedExtensions= [".zip", ".rar"];
     public UploadSubmissionFromZipCommandValidator()
     {
         RuleFor(x => x.ExaminerId)
             .NotEmpty().WithMessage("ExaminerId is required.");
         RuleFor(x => x.ExamSubjectId)
             .NotEmpty().WithMessage("ExamSubjectId is required.");
-        RuleFor(x => x.ZipFile)
-            .NotEmpty().WithMessage("ZipFile is required.")
-            .Must(file => file != null &&
-                          file.FileName.EndsWith(".zip", StringComparison.OrdinalIgnoreCase))
-            .WithMessage("File must be a .zip archive.");
+        RuleFor(x => x.ArchiveFile)
+            .NotEmpty().WithMessage("ArchiveFile is required.")
+            .Must(file => file != null && SupportedExtensions.Any(ext => 
+                file.FileName.EndsWith(ext, StringComparison.OrdinalIgnoreCase)))
+            .WithMessage("File must be a .zip or .rar archive.");
     }
 }
 
